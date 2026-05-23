@@ -4,7 +4,7 @@
 
 html {
   color-scheme: light;
-  background-color: #F1EBDD;
+  background-color: #F4F0E4;
 }
 
 html,
@@ -14,8 +14,9 @@ body,
 }
 
 body {
+  margin: 0;
   font-family:
-    'Inter Tight',
+    'DM Sans',
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
@@ -24,19 +25,31 @@ body {
     'Helvetica Neue',
     Arial,
     sans-serif;
-  background-color: #F1EBDD;
-  color: #1B1814;
+  background-color: #F4F0E4;
+  color: #16140F;
   font-size: 14px;
   line-height: 1.5;
-  font-feature-settings: 'ss01', 'ss02';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.font-display {
-  font-feature-settings: normal;
+.serif {
+  font-family: 'Instrument Serif', 'Times New Roman', serif;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+}
+
+.serif-italic {
+  font-family: 'Instrument Serif', 'Times New Roman', serif;
+  font-style: italic;
+  letter-spacing: -0.005em;
+  line-height: 0.95;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
 }
 
 ::selection {
-  background-color: rgba(245, 81, 29, 0.22);
+  background-color: rgba(107, 143, 18, 0.22);
 }

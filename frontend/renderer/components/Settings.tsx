@@ -1,6 +1,7 @@
-import { useEffect, useState, type JSX, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type JSX, type ReactNode } from 'react'
 import { api } from '../api'
 import { ApiKeyField } from './ApiKeyField'
+import { COLORS } from './art'
 import type {
   ApiKeyStatus,
   CloudModel,
@@ -118,192 +119,328 @@ export function Settings({
   const downloadPct = models?.local.downloaded
     ? 100
     : modelProgress ?? models?.local.downloadingPercent ?? 0
+  const downloading =
+    !models?.local.downloaded &&
+    (modelProgress != null ||
+      models?.local.downloadingPercent != null ||
+      downloadStarting)
 
   return (
     <div
       className="flex h-full flex-col overflow-y-auto"
-      style={{ padding: '48px 64px', gap: 32 }}
+      style={{ background: COLORS.CANVAS }}
     >
-      <div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute" style={{ marginBottom: 8 }}>
-          Settings
-        </div>
-        <h1
-          className="font-display m-0 text-ink"
+      {/* Masthead rule row */}
+      <div
+        style={{
+          padding: '20px 36px 0',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 24,
+          flexShrink: 0
+        }}
+      >
+        <div
+          className="mono"
           style={{
-            fontSize: 56,
-            fontWeight: 700,
-            lineHeight: 0.95,
-            letterSpacing: '-0.035em',
-            fontVariationSettings: `'wdth' 85, 'opsz' 60`
+            fontSize: 11,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: COLORS.MUTE
           }}
         >
-          Make it yours.
-        </h1>
+          Preferences
+        </div>
+        <div style={{ flex: 1, height: 1, background: COLORS.RULE, marginBottom: 5 }} />
+        <div
+          className="mono"
+          style={{
+            fontSize: 11,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: COLORS.MUTE
+          }}
+        >
+          §03
+        </div>
       </div>
 
-      <SettingsRow
-        label="Hotkey"
-        desc="Hold to record, release to transcribe."
+      <main
+        style={{
+          flex: 1,
+          padding: '20px 36px 28px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 20,
+          minHeight: 0
+        }}
       >
-        <div className="flex items-center" style={{ gap: 8 }}>
-          <KbdBig>fn</KbdBig>
-          <span className="text-[12px] text-mute">globe key</span>
-        </div>
-      </SettingsRow>
+        <h1 style={{ margin: 0 }}>
+          <span
+            className="serif"
+            style={{
+              fontSize: 56,
+              color: COLORS.INK,
+              lineHeight: 0.95,
+              letterSpacing: '-0.025em'
+            }}
+          >
+            Make it{' '}
+          </span>
+          <span
+            className="serif-italic"
+            style={{ fontSize: 56, color: COLORS.OLIVE, lineHeight: 0.95 }}
+          >
+            yours.
+          </span>
+        </h1>
 
-      <SettingsRow
-        label="Transcription"
-        desc="Where audio is turned into text."
-      >
-        <Segment
-          options={[
-            { id: 'local', label: 'On-device', sub: 'whisper.cpp · base.en' },
-            { id: 'cloud', label: 'Cloud', sub: 'OpenAI · BYOK' }
-          ]}
-          active={settings.backend}
-          onChange={id => update({ backend: id as 'local' | 'cloud' })}
-        />
-      </SettingsRow>
-
-      {settings.backend === 'local' && models && (
-        <SettingsRow
-          label="Local model"
-          desc="60 MB, lives in Application Support."
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(6, 1fr)',
+            gap: 12
+          }}
         >
-          <div className="flex items-center" style={{ gap: 14 }}>
-            <ProgressBar percent={downloadPct} />
-            {models.local.downloaded ? (
-              <div className="text-[13px] font-semibold text-sage">Downloaded</div>
-            ) : modelProgress != null ? (
-              <div className="text-[13px] font-semibold text-coral">
-                {modelProgress}%
-              </div>
-            ) : models.local.downloadingPercent != null ? (
-              <div className="text-[13px] font-semibold text-coral">
-                {models.local.downloadingPercent}%
-              </div>
-            ) : downloadStarting ? (
-              <div className="text-[13px] font-semibold text-coral">Starting…</div>
-            ) : (
-              <button onClick={startDownload} style={chipBtnStyle}>
-                Download
-              </button>
-            )}
-          </div>
-          {downloadError && (
-            <p className="mt-2 text-[12.5px] text-coral">{downloadError}</p>
-          )}
-        </SettingsRow>
-      )}
+          <BentoCard
+            span={4}
+            label="Hotkey"
+            desc="Hold to record. Release to transcribe."
+          >
+            <div
+              style={{ display: 'flex', gap: 10, alignItems: 'center' }}
+            >
+              <KbdBig>fn</KbdBig>
+              <span style={{ fontSize: 12, color: COLORS.MUTE }}>globe key</span>
+            </div>
+          </BentoCard>
 
-      {settings.backend === 'cloud' && (
-        <>
-          <SettingsRow
-            label="Cloud model"
-            desc="Which OpenAI transcription endpoint to call."
+          <BentoCard
+            span={2}
+            label="Microphone"
+            desc="Pin to internal mic so Bluetooth stays high-quality."
           >
             <Dropdown
-              value={settings.cloudModel}
+              value={settings.inputDeviceId ?? ''}
+              renderValue={selectedMicLabel}
               options={[
-                { value: 'gpt-4o-mini-transcribe', label: 'gpt-4o-mini-transcribe' },
-                { value: 'gpt-4o-transcribe', label: 'gpt-4o-transcribe' },
-                { value: 'whisper-1', label: 'whisper-1' }
+                { value: '', label: 'System default' },
+                ...inputDevices.map(d => ({
+                  value: d.deviceId,
+                  label: d.label || `Microphone (${d.deviceId.slice(0, 6)}…)`
+                }))
               ]}
-              onChange={v => update({ cloudModel: v as CloudModel })}
+              onChange={v => update({ inputDeviceId: v || null })}
             />
-          </SettingsRow>
+            {deviceError && (
+              <p style={{ marginTop: 6, fontSize: 11.5, color: COLORS.BLUSH }}>
+                {deviceError}
+              </p>
+            )}
+          </BentoCard>
 
-          <SettingsRow
-            label="OpenAI API key"
-            desc="Stored encrypted in macOS Keychain. Never logged."
+          <BentoCard
+            span={3}
+            label="Transcription"
+            desc="Where audio becomes text."
           >
-            {keyStatus && <ApiKeyField status={keyStatus} onChange={refresh} />}
-          </SettingsRow>
+            <Segment
+              options={[
+                { id: 'local', label: 'On-device', sub: 'whisper.cpp · base.en' },
+                { id: 'cloud', label: 'Cloud', sub: 'OpenAI · BYOK' }
+              ]}
+              active={settings.backend}
+              onChange={id => update({ backend: id as 'local' | 'cloud' })}
+            />
+          </BentoCard>
 
-          {settings.cloudModel !== 'whisper-1' && (
-            <SettingsRow
-              label="Stream transcript"
-              desc="Send audio as you speak so paste fires fast on release. Falls back to batch on error."
-              beta
+          {settings.backend === 'local' && models && (
+            <BentoCard
+              span={3}
+              label="Local model"
+              desc="60 MB · Application Support."
             >
-              <Toggle
-                value={settings.streaming}
-                onChange={v => update({ streaming: v })}
-              />
-            </SettingsRow>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: 12 }}
+              >
+                <ProgressBar percent={downloadPct} />
+                {models.local.downloaded ? (
+                  <span
+                    className="mono"
+                    style={{
+                      fontSize: 11,
+                      color: COLORS.OLIVE,
+                      fontWeight: 500,
+                      letterSpacing: '0.06em'
+                    }}
+                  >
+                    DOWNLOADED
+                  </span>
+                ) : downloading ? (
+                  <span
+                    className="mono"
+                    style={{
+                      fontSize: 11,
+                      color: COLORS.OLIVE,
+                      fontWeight: 500,
+                      letterSpacing: '0.06em'
+                    }}
+                  >
+                    {modelProgress ??
+                      models.local.downloadingPercent ??
+                      0}
+                    %
+                  </span>
+                ) : (
+                  <button onClick={startDownload} style={chipBtnStyle}>
+                    Download
+                  </button>
+                )}
+                <div style={{ flex: 1 }} />
+                {models.local.downloaded && (
+                  <button onClick={startDownload} style={ghostBtnStyle}>
+                    Re-download
+                  </button>
+                )}
+              </div>
+              {downloadError && (
+                <p style={{ marginTop: 6, fontSize: 11.5, color: COLORS.BLUSH }}>
+                  {downloadError}
+                </p>
+              )}
+            </BentoCard>
           )}
-        </>
-      )}
 
-      <SettingsRow
-        label="Microphone"
-        desc="Pin to internal mic so Bluetooth headphones stay high-quality."
-      >
-        <Dropdown
-          value={settings.inputDeviceId ?? ''}
-          renderValue={selectedMicLabel}
-          options={[
-            { value: '', label: 'System default' },
-            ...inputDevices.map(d => ({
-              value: d.deviceId,
-              label: d.label || `Microphone (${d.deviceId.slice(0, 6)}…)`
-            }))
-          ]}
-          onChange={v => update({ inputDeviceId: v || null })}
-        />
-        {deviceError && (
-          <p className="mt-2 text-[12.5px] text-coral">{deviceError}</p>
-        )}
-      </SettingsRow>
+          {settings.backend === 'cloud' && (
+            <BentoCard
+              span={3}
+              label="Cloud model"
+              desc="OpenAI transcription endpoint."
+            >
+              <Dropdown
+                value={settings.cloudModel}
+                options={[
+                  { value: 'gpt-4o-mini-transcribe', label: 'gpt-4o-mini-transcribe' },
+                  { value: 'gpt-4o-transcribe', label: 'gpt-4o-transcribe' },
+                  { value: 'whisper-1', label: 'whisper-1' }
+                ]}
+                onChange={v => update({ cloudModel: v as CloudModel })}
+              />
+            </BentoCard>
+          )}
+
+          {settings.backend === 'cloud' && (
+            <BentoCard
+              span={settings.cloudModel === 'whisper-1' ? 6 : 4}
+              label="OpenAI API key"
+              desc="Stored encrypted in macOS Keychain. Never logged."
+            >
+              {keyStatus && <ApiKeyField status={keyStatus} onChange={refresh} />}
+            </BentoCard>
+          )}
+
+          {settings.backend === 'cloud' &&
+            settings.cloudModel !== 'whisper-1' && (
+              <BentoCard
+                span={2}
+                label="Stream transcript"
+                desc="Send audio as you speak so paste fires fast on release."
+                beta
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12
+                  }}
+                >
+                  <Toggle
+                    on={settings.streaming}
+                    onChange={v => update({ streaming: v })}
+                  />
+                  <span
+                    className="mono"
+                    style={{
+                      fontSize: 11,
+                      color: settings.streaming ? COLORS.OLIVE : COLORS.MUTE,
+                      letterSpacing: '0.12em'
+                    }}
+                  >
+                    {settings.streaming ? 'ENABLED' : 'OFF'}
+                  </span>
+                </div>
+              </BentoCard>
+            )}
+        </div>
+      </main>
     </div>
   )
 }
 
-function SettingsRow({
+function BentoCard({
+  children,
   label,
   desc,
-  children,
+  span = 2,
   beta
 }: {
+  children: ReactNode
   label: string
   desc: string
-  children: ReactNode
+  span?: number
   beta?: boolean
 }): JSX.Element {
   return (
     <div
-      className="grid items-start border-b border-rule"
       style={{
-        gridTemplateColumns: '280px 1fr',
-        gap: 32,
-        paddingBottom: 22
+        gridColumn: `span ${span}`,
+        background: COLORS.ELEVATED,
+        border: `1px solid ${COLORS.RULE}`,
+        borderRadius: 14,
+        padding: '16px 18px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        minHeight: 124
       }}
     >
       <div>
-        <div className="flex items-center" style={{ gap: 8, marginBottom: 4 }}>
-          <div className="text-[15px] font-semibold text-ink">{label}</div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 4
+          }}
+        >
+          <span
+            style={{ fontSize: 13.5, color: COLORS.INK, fontWeight: 500 }}
+          >
+            {label}
+          </span>
           {beta && (
             <span
-              className="font-mono rounded-full bg-butter text-ink"
+              className="mono"
               style={{
                 fontSize: 9,
                 padding: '2px 6px',
-                letterSpacing: '0.1em'
+                background: COLORS.OLIVE_SOFT,
+                color: COLORS.OLIVE_INK,
+                border: `1px solid ${COLORS.OLIVE}33`,
+                borderRadius: 999,
+                letterSpacing: '0.12em'
               }}
             >
               BETA
             </span>
           )}
         </div>
-        <div
-          className="text-mute"
-          style={{ fontSize: 12.5, lineHeight: 1.5, maxWidth: 260 }}
-        >
+        <div style={{ fontSize: 11.5, color: COLORS.MUTE, lineHeight: 1.45 }}>
           {desc}
         </div>
       </div>
-      <div>{children}</div>
+      <div style={{ marginTop: 'auto' }}>{children}</div>
     </div>
   )
 }
@@ -311,13 +448,20 @@ function SettingsRow({
 function KbdBig({ children }: { children: ReactNode }): JSX.Element {
   return (
     <span
-      className="font-mono inline-flex items-center justify-center rounded-md border border-rule bg-white text-ink"
+      className="mono"
       style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         minWidth: 36,
         height: 32,
         padding: '0 9px',
-        borderBottom: '2px solid #D8CFB9',
+        background: COLORS.CANVAS,
+        border: `1px solid ${COLORS.RULE}`,
+        borderBottom: `2px solid ${COLORS.RULE}`,
+        borderRadius: 7,
         fontSize: 13,
+        color: COLORS.INK,
         fontWeight: 500
       }}
     >
@@ -326,25 +470,25 @@ function KbdBig({ children }: { children: ReactNode }): JSX.Element {
   )
 }
 
-export const chipBtnStyle: React.CSSProperties = {
-  background: '#1B1814',
-  color: '#F1EBDD',
+export const chipBtnStyle: CSSProperties = {
+  background: COLORS.INK,
+  color: COLORS.CANVAS,
   border: 'none',
   padding: '7px 14px',
   borderRadius: 7,
-  fontSize: 13,
+  fontSize: 12.5,
   fontFamily: 'inherit',
   cursor: 'pointer',
   fontWeight: 500
 }
 
-export const ghostBtnStyle: React.CSSProperties = {
+export const ghostBtnStyle: CSSProperties = {
   background: 'transparent',
-  color: '#2B2620',
-  border: '1px solid #D8CFB9',
+  color: COLORS.INK_SOFT,
+  border: `1px solid ${COLORS.RULE}`,
   padding: '6px 12px',
   borderRadius: 7,
-  fontSize: 12.5,
+  fontSize: 12,
   fontFamily: 'inherit',
   cursor: 'pointer'
 }
@@ -360,8 +504,14 @@ function Segment({
 }): JSX.Element {
   return (
     <div
-      className="inline-flex items-stretch rounded-[10px] border border-rule bg-paper-deep"
-      style={{ padding: 4, gap: 4 }}
+      style={{
+        display: 'inline-flex',
+        background: COLORS.PAPER,
+        padding: 4,
+        borderRadius: 10,
+        border: `1px solid ${COLORS.RULE}`,
+        gap: 4
+      }}
     >
       {options.map(o => {
         const isOn = o.id === active
@@ -369,17 +519,39 @@ function Segment({
           <button
             key={o.id}
             onClick={() => onChange(o.id)}
-            className={`flex flex-col rounded-[7px] border text-left transition ${
-              isOn
-                ? 'border-rule bg-paper shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
-                : 'border-transparent hover:bg-paper/50'
-            }`}
-            style={{ padding: '8px 14px' }}
+            style={{
+              background: isOn ? COLORS.ELEVATED : 'transparent',
+              border: isOn ? `1px solid ${COLORS.RULE}` : '1px solid transparent',
+              padding: '7px 12px',
+              borderRadius: 7,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 1,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              boxShadow: isOn ? '0 1px 2px rgba(20,12,4,0.05)' : 'none'
+            }}
           >
-            <div className="text-[13px] font-semibold text-ink">{o.label}</div>
-            <div className="font-mono text-[10px] text-mute" style={{ letterSpacing: '0.04em' }}>
+            <span
+              style={{
+                fontSize: 12.5,
+                fontWeight: 500,
+                color: isOn ? COLORS.INK : COLORS.INK_SOFT
+              }}
+            >
+              {o.label}
+            </span>
+            <span
+              className="mono"
+              style={{
+                fontSize: 10,
+                color: COLORS.MUTE,
+                letterSpacing: '0.04em'
+              }}
+            >
               {o.sub}
-            </div>
+            </span>
           </button>
         )
       })}
@@ -388,29 +560,42 @@ function Segment({
 }
 
 function Toggle({
-  value,
+  on,
   onChange
 }: {
-  value: boolean
+  on: boolean
   onChange: (v: boolean) => void
 }): JSX.Element {
+  const w = 44
+  const h = 26
+  const knob = 20
   return (
     <button
       type="button"
-      onClick={() => onChange(!value)}
-      className={`relative inline-flex items-center transition ${
-        value ? 'bg-ink' : 'bg-rule'
-      }`}
-      style={{ width: 38, height: 22, borderRadius: 999 }}
-      aria-pressed={value}
+      onClick={() => onChange(!on)}
+      style={{
+        width: w,
+        height: h,
+        borderRadius: 999,
+        background: on ? COLORS.OLIVE : COLORS.PAPER,
+        border: `1px solid ${on ? COLORS.OLIVE_DEEP : COLORS.RULE}`,
+        position: 'relative',
+        cursor: 'pointer',
+        padding: 0,
+        flexShrink: 0
+      }}
+      aria-pressed={on}
     >
       <span
-        className="absolute bg-paper transition-[left]"
         style={{
-          left: value ? 18 : 2,
-          width: 18,
-          height: 18,
-          borderRadius: 999
+          width: knob,
+          height: knob,
+          borderRadius: '50%',
+          background: on ? COLORS.CANVAS : COLORS.MUTE,
+          position: 'absolute',
+          top: 2,
+          left: on ? w - knob - 4 : 2,
+          transition: 'left 0.18s'
         }}
       />
     </button>
@@ -420,12 +605,23 @@ function Toggle({
 function ProgressBar({ percent }: { percent: number }): JSX.Element {
   return (
     <div
-      className="overflow-hidden rounded-full bg-paper-deep"
-      style={{ width: 160, height: 6 }}
+      style={{
+        width: 110,
+        height: 4,
+        borderRadius: 999,
+        background: COLORS.PAPER,
+        overflow: 'hidden',
+        border: `1px solid ${COLORS.RULE_SOFT}`
+      }}
     >
       <div
-        className="h-full rounded-full bg-sage transition-[width] duration-200"
-        style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
+        style={{
+          width: `${Math.max(0, Math.min(100, percent))}%`,
+          height: '100%',
+          background: COLORS.OLIVE,
+          borderRadius: 999,
+          transition: 'width 200ms ease'
+        }}
       />
     </div>
   )
@@ -443,15 +639,22 @@ function Dropdown({
   renderValue?: string
 }): JSX.Element {
   return (
-    <div className="relative inline-flex" style={{ minWidth: 280 }}>
+    <div style={{ position: 'relative', display: 'inline-flex', width: '100%' }}>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full appearance-none rounded-lg border border-rule bg-white text-ink"
         style={{
-          padding: '8px 32px 8px 12px',
-          fontSize: 13,
-          fontFamily: 'inherit'
+          width: '100%',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          background: COLORS.CANVAS,
+          border: `1px solid ${COLORS.RULE}`,
+          borderRadius: 7,
+          padding: '7px 28px 7px 11px',
+          fontSize: 12.5,
+          color: COLORS.INK,
+          fontFamily: 'inherit',
+          cursor: 'pointer'
         }}
       >
         {options.map(o => (
@@ -461,14 +664,20 @@ function Dropdown({
         ))}
       </select>
       <svg
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
         width="10"
         height="6"
         viewBox="0 0 10 6"
+        style={{
+          position: 'absolute',
+          right: 10,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          pointerEvents: 'none'
+        }}
       >
         <path
           d="M1 1l4 4 4-4"
-          stroke="#8E8473"
+          stroke={COLORS.MUTE}
           strokeWidth="1.4"
           fill="none"
           strokeLinecap="round"
