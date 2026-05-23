@@ -13,10 +13,13 @@ let bootstrap: ServerBootstrap | null = null
 
 async function createWindow(): Promise<void> {
   const win = new BrowserWindow({
-    width: 520,
-    height: 640,
+    width: 880,
+    height: 620,
+    minWidth: 720,
+    minHeight: 520,
     show: false,
     autoHideMenuBar: true,
+    backgroundColor: '#ffffff',
     title: 'Freestyle',
     webPreferences: {
       preload: path.join(__dirname, '../preload/preload.cjs'),

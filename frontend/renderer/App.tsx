@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { api, initApi } from './api'
 import { Recorder } from './lib/recorder'
-import { Pill } from './components/Pill'
 import { Settings } from './components/Settings'
+import { Sidebar, type Page } from './components/Sidebar'
+import { HomePage, type PillState } from './components/HomePage'
 import type { Settings as SettingsType } from '@shared/types'
-
-type PillState = 'idle' | 'recording' | 'transcribing' | 'pasting' | 'error'
 
 export function App(): JSX.Element {
   const [ready, setReady] = useState(false)
   const [bootError, setBootError] = useState<string | null>(null)
   const [settings, setSettings] = useState<SettingsType | null>(null)
+  const [page, setPage] = useState<Page>('home')
   const [pill, setPill] = useState<PillState>('idle')
   const [pillMessage, setPillMessage] = useState<string | undefined>(undefined)
   const [lastTranscript, setLastTranscript] = useState<string>('')
@@ -97,9 +97,9 @@ export function App(): JSX.Element {
   if (bootError) {
     return (
       <div className="flex h-full items-center justify-center px-6">
-        <div className="max-w-md space-y-2 rounded border border-rose-700 bg-rose-950/40 p-4">
-          <div className="text-sm font-semibold text-rose-200">Boot failed</div>
-          <pre className="whitespace-pre-wrap text-xs text-rose-300">
+        <div className="max-w-md space-y-2 border-l-2 border-accent bg-paper p-4">
+          <div className="text-[15px] text-ink">Boot failed</div>
+          <pre className="whitespace-pre-wrap font-serif text-[13px] italic text-muted">
             {bootError}
           </pre>
         </div>
@@ -110,39 +110,34 @@ export function App(): JSX.Element {
   if (!ready || !settings) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-sm text-zinc-400">Booting…</div>
+        <div className="text-[15px] italic text-muted">Booting…</div>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto flex h-full max-w-md flex-col gap-6 px-6 py-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Freestyle</h1>
-          <p className="text-xs text-zinc-500">
-            Hotkey → speak → text at your cursor
-          </p>
-        </div>
-        <Pill state={pill} message={pillMessage} />
-      </header>
-
-      <Settings
-        settings={settings}
-        onSettingsChange={setSettings}
-        modelProgress={modelProgress}
+    <div className="flex h-full">
+      <Sidebar
+        page={page}
+        onNavigate={setPage}
+        pillState={pill}
+        pillMessage={pillMessage}
       />
-
-      {lastTranscript && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-400">
-            Last transcript
-          </h2>
-          <pre className="whitespace-pre-wrap rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-200">
-            {lastTranscript}
-          </pre>
-        </section>
-      )}
+      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto px-16 py-16">
+        {page === 'home' ? (
+          <HomePage
+            pillState={pill}
+            pillMessage={pillMessage}
+            lastTranscript={lastTranscript}
+          />
+        ) : (
+          <Settings
+            settings={settings}
+            onSettingsChange={setSettings}
+            modelProgress={modelProgress}
+          />
+        )}
+      </main>
     </div>
   )
 }

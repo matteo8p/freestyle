@@ -41,11 +41,23 @@ export function Settings({
 
     async function loadDevices(autoPick: boolean): Promise<void> {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        stream.getTracks().forEach(t => t.stop())
-        const all = await navigator.mediaDevices.enumerateDevices()
+        let all = await navigator.mediaDevices.enumerateDevices()
+        let inputs = all.filter(d => d.kind === 'audioinput')
+
+        if (inputs.length > 0 && inputs.every(d => !d.label)) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            }
+          })
+          stream.getTracks().forEach(t => t.stop())
+          all = await navigator.mediaDevices.enumerateDevices()
+          inputs = all.filter(d => d.kind === 'audioinput')
+        }
+
         if (cancelled) return
-        const inputs = all.filter(d => d.kind === 'audioinput')
         setInputDevices(inputs)
         setDeviceError(null)
 
@@ -98,27 +110,12 @@ export function Settings({
   }
 
   return (
-    <div className="space-y-6">
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-400">
-          Hotkey
-        </h2>
-        <div className="rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-200">
-          🌐 Fn / globe key
-        </div>
-        <p className="mt-1 text-xs text-zinc-500">
-          Hold to record, release to transcribe and paste.
-        </p>
-      </section>
-
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-400">
-          Microphone
-        </h2>
+    <div className="max-w-xl space-y-12">
+      <Section label="Microphone">
         <select
           value={settings.inputDeviceId ?? ''}
           onChange={e => update({ inputDeviceId: e.target.value || null })}
-          className="w-full rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+          className="w-full border-b border-rule bg-transparent py-2 font-serif text-[15px] text-ink focus:border-ink focus:outline-none"
         >
           <option value="">System default</option>
           {inputDevices.map(d => (
@@ -127,20 +124,17 @@ export function Settings({
             </option>
           ))}
         </select>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-2 text-[13px] italic text-muted">
           Pin to the built-in mic so Bluetooth headphones stay in high-quality
           A2DP mode and keep noise cancelling on.
         </p>
         {deviceError && (
-          <p className="mt-1 text-xs text-rose-400">{deviceError}</p>
+          <p className="mt-1 text-[13px] italic text-accent">{deviceError}</p>
         )}
-      </section>
+      </Section>
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-400">
-          Transcription backend
-        </h2>
-        <div className="flex gap-2">
+      <Section label="Transcription backend">
+        <div className="flex gap-3">
           <BackendOption
             label="Local"
             sub="whisper.cpp on this Mac"
@@ -154,65 +148,81 @@ export function Settings({
             onClick={() => update({ backend: 'cloud' })}
           />
         </div>
-      </section>
+      </Section>
 
       {settings.backend === 'local' && models && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-400">
-            Local model
-          </h2>
-          <div className="rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-200">
+        <Section label="Local model">
+          <div className="text-[15px] text-ink">
             Whisper base.en —{' '}
             {models.local.downloaded ? (
-              <span className="text-emerald-400">Downloaded</span>
+              <span className="italic text-muted">downloaded</span>
             ) : modelProgress != null ? (
-              <span className="text-amber-400">Downloading {modelProgress}%</span>
+              <span className="italic text-accent">
+                downloading {modelProgress}%
+              </span>
             ) : models.local.downloadingPercent != null ? (
-              <span className="text-amber-400">
-                Downloading {models.local.downloadingPercent}%
+              <span className="italic text-accent">
+                downloading {models.local.downloadingPercent}%
               </span>
             ) : downloadStarting ? (
-              <span className="text-amber-400">Starting download…</span>
+              <span className="italic text-accent">starting download…</span>
             ) : (
               <button
                 onClick={startDownload}
-                className="ml-1 rounded bg-zinc-700 px-2 py-0.5 text-xs hover:bg-zinc-600"
+                className="italic text-accent underline-offset-4 hover:underline"
               >
-                Download (~60 MB)
+                download (~60 MB)
               </button>
             )}
           </div>
           {downloadError && (
-            <p className="mt-1 text-xs text-rose-400">{downloadError}</p>
+            <p className="mt-1 text-[13px] italic text-accent">
+              {downloadError}
+            </p>
           )}
-        </section>
+        </Section>
       )}
 
       {settings.backend === 'cloud' && (
         <>
-          <section>
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-400">
-              Cloud model
-            </h2>
+          <Section label="Cloud model">
             <select
               value={settings.cloudModel}
               onChange={e => update({ cloudModel: e.target.value as CloudModel })}
-              className="w-full rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+              className="w-full border-b border-rule bg-transparent py-2 font-serif text-[15px] text-ink focus:border-ink focus:outline-none"
             >
               <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
               <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
               <option value="whisper-1">whisper-1</option>
             </select>
-          </section>
+          </Section>
 
-          <section>
-            {keyStatus && (
-              <ApiKeyField status={keyStatus} onChange={refresh} />
-            )}
-          </section>
+          <Section label="OpenAI API key">
+            {keyStatus && <ApiKeyField status={keyStatus} onChange={refresh} />}
+          </Section>
         </>
       )}
     </div>
+  )
+}
+
+function Section({
+  label,
+  children
+}: {
+  label: string
+  children: React.ReactNode
+}): JSX.Element {
+  return (
+    <section>
+      <div className="mb-2 flex items-center gap-3">
+        <h2 className="text-[11px] uppercase tracking-[0.18em] text-muted">
+          {label}
+        </h2>
+        <span className="h-px flex-1 bg-rule" />
+      </div>
+      <div className="pt-2">{children}</div>
+    </section>
   )
 }
 
@@ -229,20 +239,21 @@ function BackendOption({
 }): JSX.Element {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex-1 rounded-lg border px-3 py-3 text-left text-sm transition ${
+      aria-pressed={active}
+      className={`flex-1 border px-4 py-3 text-left transition ${
         active
-          ? 'border-zinc-300 bg-zinc-100 text-zinc-900'
-          : 'border-zinc-800 bg-zinc-900 text-zinc-200 hover:border-zinc-700'
+          ? 'border-ink bg-ink text-paper'
+          : 'border-rule bg-paper text-ink hover:border-ink'
       }`}
     >
-      <div className="font-medium">{label}</div>
+      <div className="text-[15px]">{label}</div>
       <div
-        className={`text-xs ${active ? 'text-zinc-600' : 'text-zinc-500'}`}
+        className={`text-[12px] italic ${active ? 'text-paper/70' : 'text-muted'}`}
       >
         {sub}
       </div>
     </button>
   )
 }
-

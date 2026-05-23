@@ -8,14 +8,25 @@ export class Recorder {
 
   async start(deviceId?: string | null): Promise<void> {
     this.chunks = []
-    this.stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        deviceId: deviceId ? { ideal: deviceId } : undefined,
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false
+    const processing = {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false
+    }
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        audio: deviceId
+          ? { deviceId: { exact: deviceId }, ...processing }
+          : processing
+      })
+    } catch (e) {
+      const name = e instanceof Error ? e.name : ''
+      if (deviceId && (name === 'OverconstrainedError' || name === 'NotFoundError')) {
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: processing })
+      } else {
+        throw e
       }
-    })
+    }
     this.mimeType = pickSupportedMime()
     this.mediaRecorder = new MediaRecorder(
       this.stream,
