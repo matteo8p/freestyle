@@ -1,88 +1,74 @@
 # Freestyle
 
-Freestyle is an open-source AI voice dictation app inspired by [Wispr Flow](https://wisprflow.ai). Press a hotkey, speak naturally, and clean, formatted text appears at your cursor in any app — Slack, Gmail, VS Code, Cursor, Notion, anything with a text field. Unlike Wispr Flow, Freestyle runs locally by default, has no subscription, and is fully auditable.
+Open-source AI voice dictation for macOS. Hold a hotkey, speak, release — text appears at your cursor in whatever app is focused.
 
----
+The product spec lives in [`specs/README.md`](./specs/README.md). The MVP technical spec lives in [`specs/spec.md`](./specs/spec.md).
 
-## Goals and non-goals
+## Prerequisites
 
-### Goals
+- **macOS** (Apple Silicon or Intel)
+- **Node.js 20+** — `node -v` to check. Install via [nvm](https://github.com/nvm-sh/nvm) or `brew install node`.
+- **Xcode Command Line Tools** — `xcode-select --install`. Required because `nodejs-whisper` compiles `whisper.cpp` from source on first install.
 
-- **Feature parity with Wispr Flow's core dictation loop.** Hotkey → speak → polished text at cursor, with context-aware formatting, filler removal, backtrack handling, and per-app tone adaptation.
-- **Local-first.** Whisper + Parakeet models run on-device. Cloud models are opt-in BYOK.
-- **Cross-platform.** macOS, Windows, Linux — one codebase.
-- **Pluggable.** Bring your own STT model, your own LLM, your own dictionary.
+## Install
 
-### Non-goals (for v1)
+```bash
+git clone <this-repo>
+cd freestyle
+npm install
+```
 
-- Mobile apps (iOS/Android).
-- Hosted multi-tenant SaaS.
-- Team/admin features (shared dictionaries, SSO, dashboards).
-- Real-time meeting transcription. The product is dictation, not a Granola/Otter competitor.
+The install step pulls Electron, React, Hono, the OpenAI SDK, and `nodejs-whisper`. The whisper model itself (`ggml-base.en.bin`, ~60 MB) is **not** bundled — it downloads on first local-mode transcription into `~/Library/Application Support/Freestyle/models/`.
 
----
+## Run in dev
 
-## Feature spec
+```bash
+npm run dev
+```
 
-### 1. Core dictation loop
+This launches `electron-vite dev`: the Hono backend boots on `127.0.0.1:<random-port>`, the renderer hot-reloads over Vite, and the Electron window opens.
 
-Hold a global hotkey (default `Fn`, fallback `Ctrl+Space`), speak, release. Transcribed text is pasted at the cursor in the active app. Clipboard is saved before and restored after. A small floating pill UI shows recording state and processing status. `Esc` cancels; `Cmd/Ctrl+Z` undoes.
+On first launch macOS will prompt for:
 
-### 2. Transcription engine
+1. **Microphone** — granted automatically when you trigger recording.
+2. **Accessibility** — required to paste into other apps via synthetic ⌘V. macOS opens System Settings → Privacy & Security → Accessibility; toggle Freestyle (or Electron in dev) on.
 
-Local-first, with a clean adapter so any model can plug in.
+## Use
 
-- **Local:** Whisper (Tiny → Turbo), NVIDIA Parakeet on supported hardware.
-- **Cloud (BYOK):** OpenAI, Deepgram, AssemblyAI, or any OpenAI-compatible endpoint.
+1. Hotkey: the **Fn / 🌐 globe key** (bottom-left corner of the Mac keyboard). **Hold** to record, **release** to transcribe and paste at the cursor of whichever app was focused.
+2. In the Freestyle window, pick a backend:
+   - **Local** — runs `whisper.cpp` on-device. First use downloads the model.
+   - **Cloud** — uses OpenAI. Paste your API key in the field (`sk-...`). Key is stored encrypted in the macOS Keychain via Electron's `safeStorage`.
+3. If using Cloud, pick a model: `gpt-4o-mini-transcribe` (default), `gpt-4o-transcribe`, or `whisper-1`.
 
-### 3. AI cleanup layer ("Polish")
+### Free up the globe key
 
-After raw transcription, text is optionally passed through an LLM to remove fillers, resolve backtracks (*"meet at 2... actually 3"* → *"meet at 3"*), add punctuation, format lists, and fix obvious errors. Verbatim mode disables rewriting. System prompt is user-editable. LLM backends: local (Ollama, llama.cpp, MLX) or cloud BYOK.
+By default macOS uses the Fn / globe key for emoji picker, dictation, or input-source switching, which fires alongside Freestyle. Disable it:
 
-### 4. Context Engine
+**System Settings → Keyboard → "Press 🌐 key to" → Do Nothing**
 
-The active application name is passed into the Polish prompt so the LLM adapts tone: casual in Slack, professional in Mail, technical in IDEs. App name only — no screenshots, no OCR, no window content. Per-app rules are user-configurable.
+(If you still want emoji on a shortcut, set it to a key combo instead in the same panel.)
 
-### 5. Command Mode
+## Scripts
 
-Highlight text, press a hotkey, speak an instruction ("make this more formal", "translate to Spanish", "shorten to two sentences"). Selected text is rewritten in place. Uses the same LLM backend as Polish.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Dev mode with HMR. |
+| `npm run build` | Production bundle to `out/`. |
+| `npm run start` | Preview the production bundle. |
+| `npm run typecheck` | Run TS on both main and renderer. |
 
-### 6. Personal dictionary
+## Project layout
 
-Custom words, names, acronyms. Auto-learns from manual corrections within 30 seconds. Optional phonetic hints. Entries can be global or scoped to specific apps. Import/export as JSON or CSV.
+```
+frontend/     Electron main process + React renderer
+backend/      Hono HTTP API, STT adapters (local + OpenAI), settings, secrets
+shared/       Types shared by both sides
+specs/        Product spec and MVP technical spec
+```
 
-### 7. Snippets
+## Troubleshooting
 
-Voice shortcuts → expanded text. Variables: `{{date}}`, `{{time}}`, `{{clipboard}}`, `{{cursor}}`. Markdown preserved on insert.
-
-### 8. Styles (writing voice)
-
-User-defined sample paragraphs the LLM uses as a style reference during Polish, plus preferred/avoided patterns ("use em dashes", "avoid the word 'leverage'").
-
-### 9. Whisper mode (literal)
-
-Works when the user is literally whispering, via VAD tuned for low-amplitude speech.
-
-### 10. Developer mode
-
-For Cursor, VS Code, Zed, terminals. Handles `camelCase`, `snake_case`, file extensions, shell commands. Code-fence detection auto-engages raw mode inside triple-backtick blocks.
-
-### 11. Scratchpad
-
-Floating, always-on-top markdown notepad with live preview. Dictate directly into it without stealing focus.
-
-### 12. Languages
-
-100+ languages via Whisper. Auto-detection by default; user can pin a language.
-
----
-
-## Roadmap
-
-- **v0.1 — Alpha (current):** Hotkey, audio capture, floating pill, local Whisper, paste pipeline, settings.
-- **v0.2 — Polish layer:** LLM cleanup, user-editable prompt, backtrack/filler removal, verbatim mode.
-- **v0.3 — Context Engine:** Active app detection across platforms, per-app tone, developer mode.
-- **v0.4 — Personalization:** Dictionary with auto-learn, snippets, styles.
-- **v0.5 — Command Mode:** Selection capture, edit-in-place rewrite, undo integration.
-- **v1.0 — Stable:** Reproducible builds, auto-update, docs site, one-click installers.
-
+- **`nodejs-whisper` install fails** — make sure Xcode CLT is installed (`xcode-select --install`). The package builds `whisper.cpp` from source.
+- **Hotkey does nothing** — Accessibility permission may not be granted. Open System Settings → Privacy & Security → Accessibility and enable the Freestyle (or Electron) entry.
+- **Cloud mode says "API key not set"** — paste the key in the Settings panel and click Save. The field disappears after save and only the last 4 characters are shown.

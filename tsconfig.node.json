@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "types": ["node", "electron-vite/node"],
+    "baseUrl": ".",
+    "paths": {
+      "@backend/*": ["backend/*"],
+      "@shared/*": ["shared/*"]
+    }
+  },
+  "include": [
+    "frontend/main/**/*.ts",
+    "backend/**/*.ts",
+    "shared/**/*.ts",
+    "electron.vite.config.ts"
+  ]
+}

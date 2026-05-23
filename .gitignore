@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.npm/
+.yarn/
+.pnpm-store/
+
+# Build output
+out/
+dist/
+dist-electron/
+release/
+*.app
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Agent / local tooling
+.claude/
+
+# Electron runtime caches that occasionally leak into the repo
+.cache/
