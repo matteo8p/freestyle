@@ -60,7 +60,19 @@ async function createWindow(): Promise<void> {
   })
 }
 
+async function installReactDevTools(): Promise<void> {
+  if (app.isPackaged) return
+  try {
+    const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import('electron-devtools-installer')
+    await installExtension(REACT_DEVELOPER_TOOLS, { loadExtensionOptions: { allowFileAccess: true } })
+  } catch (err) {
+    console.warn('[freestyle] failed to load React DevTools:', err)
+  }
+}
+
 app.whenReady().then(async () => {
+  await installReactDevTools()
+
   bootstrap = await startBackend()
 
   ipcMain.handle('server:bootstrap', () => bootstrap)

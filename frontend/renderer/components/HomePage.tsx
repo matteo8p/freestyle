@@ -10,18 +10,25 @@ export type PillState =
   | 'pasted'
   | 'error'
 
+export interface Take {
+  id: string
+  text: string
+  createdAt: number
+  wordCount: number
+}
+
 interface Props {
   settings: SettingsType
   pillState: PillState
   pillMessage?: string
-  lastTranscript: string
+  takes: Take[]
 }
 
 export function HomePage({
   settings,
   pillState,
   pillMessage,
-  lastTranscript
+  takes
 }: Props): JSX.Element {
   const dateShort = useMemo(
     () =>
@@ -38,10 +45,7 @@ export function HomePage({
     return (1000 + days).toLocaleString()
   }, [])
 
-  const wordCount =
-    lastTranscript.trim().length === 0
-      ? 0
-      : lastTranscript.trim().split(/\s+/).length
+  const totalWords = takes.reduce((sum, t) => sum + t.wordCount, 0)
 
   return (
     <div className="flex h-full flex-col" style={{ background: COLORS.CANVAS }}>
@@ -104,19 +108,20 @@ export function HomePage({
             display: 'flex',
             flexDirection: 'column',
             gap: 18,
-            minWidth: 0
+            minWidth: 0,
+            minHeight: 0
           }}
         >
           <HeroStage pillState={pillState} />
-          <FeedHeader takes={lastTranscript ? 1 : 0} />
-          <Feed lastTranscript={lastTranscript} wordCount={wordCount} />
+          <FeedHeader takes={takes.length} />
+          <Feed takes={takes} />
         </div>
 
         <StatsRail
           pillState={pillState}
           pillMessage={pillMessage}
           settings={settings}
-          wordCount={wordCount}
+          wordCount={totalWords}
         />
       </main>
     </div>
@@ -209,7 +214,7 @@ function FeedHeader({ takes }: { takes: number }): JSX.Element {
       }}
     >
       <h2
-        className="serif-italic"
+        className="serif"
         style={{ fontSize: 26, color: COLORS.INK, margin: 0, lineHeight: 1 }}
       >
         Today&rsquo;s voice
@@ -228,14 +233,8 @@ function FeedHeader({ takes }: { takes: number }): JSX.Element {
   )
 }
 
-function Feed({
-  lastTranscript,
-  wordCount
-}: {
-  lastTranscript: string
-  wordCount: number
-}): JSX.Element {
-  if (lastTranscript.trim().length === 0) {
+function Feed({ takes }: { takes: Take[] }): JSX.Element {
+  if (takes.length === 0) {
     return (
       <div
         style={{
@@ -250,13 +249,10 @@ function Feed({
       </div>
     )
   }
-  const now = new Date().toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit'
-  })
   return (
     <div
       style={{
+        flex: 1,
         display: 'flex',
         flexDirection: 'column',
         gap: 12,
@@ -264,15 +260,23 @@ function Feed({
         minHeight: 0
       }}
     >
-      <FeedItem
-        time={now}
-        app="latest"
-        words={wordCount}
-        quote={lastTranscript}
-        featured
-      />
+      {takes.map(t => (
+        <FeedItem
+          key={t.id}
+          time={formatTime(t.createdAt)}
+          words={t.wordCount}
+          quote={t.text}
+        />
+      ))}
     </div>
   )
+}
+
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit'
+  })
 }
 
 function FeedEmpty(): JSX.Element {
@@ -300,7 +304,7 @@ function FeedEmpty(): JSX.Element {
         No takes yet
       </span>
       <p
-        className="serif-italic"
+        className="serif"
         style={{
           margin: 0,
           fontSize: 20,
@@ -317,25 +321,20 @@ function FeedEmpty(): JSX.Element {
 
 function FeedItem({
   time,
-  app,
   words,
-  quote,
-  featured
+  quote
 }: {
   time: string
-  app: string
   words: number
   quote: string
-  featured?: boolean
 }): JSX.Element {
   return (
     <div
       style={{
-        background: featured ? COLORS.ELEVATED : 'transparent',
-        border: featured ? `1px solid ${COLORS.RULE}` : '1px solid transparent',
-        borderRadius: featured ? 12 : 0,
-        padding: featured ? '16px 20px' : '4px 0 12px',
-        borderBottom: !featured ? `1px solid ${COLORS.RULE_SOFT}` : undefined,
+        background: COLORS.ELEVATED,
+        border: `1px solid ${COLORS.RULE}`,
+        borderRadius: 12,
+        padding: '16px 20px',
         display: 'flex',
         flexDirection: 'column',
         gap: 8
@@ -353,26 +352,6 @@ function FeedItem({
         >
           {time}
         </span>
-        <span
-          style={{
-            width: 3,
-            height: 3,
-            borderRadius: '50%',
-            background: COLORS.MUTE
-          }}
-        />
-        <span
-          className="mono"
-          style={{
-            fontSize: 11,
-            color: COLORS.OLIVE,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            fontWeight: 600
-          }}
-        >
-          {app}
-        </span>
         <div style={{ flex: 1 }} />
         <span
           className="mono"
@@ -386,12 +365,11 @@ function FeedItem({
         </span>
       </div>
       <p
-        className="serif-italic"
         style={{
           margin: 0,
-          fontSize: featured ? 22 : 18,
-          color: COLORS.INK_SOFT,
-          lineHeight: 1.35,
+          fontSize: 16,
+          color: COLORS.INK,
+          lineHeight: 1.5,
           textWrap: 'pretty'
         }}
       >

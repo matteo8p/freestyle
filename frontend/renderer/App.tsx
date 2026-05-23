@@ -7,7 +7,7 @@ import { pcm16ToWavBlob } from './lib/wav'
 import { AudioLevelMeter } from './lib/audio-level-meter'
 import { Settings } from './components/Settings'
 import { Sidebar, type Page } from './components/Sidebar'
-import { HomePage, type PillState } from './components/HomePage'
+import { HomePage, type PillState, type Take } from './components/HomePage'
 import type { Settings as SettingsType } from '@shared/types'
 
 const FINAL_TIMEOUT_MS = 5000
@@ -23,7 +23,7 @@ export function App(): JSX.Element {
   const [page, setPage] = useState<Page>('home')
   const [pill, setPill] = useState<PillState>('idle')
   const [pillMessage, setPillMessage] = useState<string | undefined>(undefined)
-  const [lastTranscript, setLastTranscript] = useState<string>('')
+  const [takes, setTakes] = useState<Take[]>([])
   const [modelProgress, setModelProgress] = useState<number | null>(null)
   const captureRef = useRef<ActiveCapture | null>(null)
   const recordingRef = useRef(false)
@@ -171,7 +171,17 @@ export function App(): JSX.Element {
         return
       }
 
-      setLastTranscript(text)
+      const trimmed = text.trim()
+      const take: Take = {
+        id:
+          typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        text,
+        createdAt: Date.now(),
+        wordCount: trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length
+      }
+      setTakes(prev => [take, ...prev])
       window.freestyle.publishTranscriptFinal(text, durationMs)
       setUiState('pasting')
       await window.freestyle.paste(text)
@@ -241,7 +251,7 @@ export function App(): JSX.Element {
             settings={settings}
             pillState={pill}
             pillMessage={pillMessage}
-            lastTranscript={lastTranscript}
+            takes={takes}
           />
         ) : page === 'settings' ? (
           <Settings
