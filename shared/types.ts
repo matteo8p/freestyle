@@ -10,13 +10,15 @@ export interface Settings {
   backend: STTBackend
   cloudModel: CloudModel
   inputDeviceId: string | null
+  streaming: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   hotkey: 'CommandOrControl+Shift+Space',
   backend: 'local',
   cloudModel: 'gpt-4o-mini-transcribe',
-  inputDeviceId: null
+  inputDeviceId: null,
+  streaming: true
 }
 
 export interface TranscribeResponse {
@@ -39,3 +41,13 @@ export interface ServerBootstrap {
   baseUrl: string
   token: string
 }
+
+export type StreamClientMessage =
+  | { type: 'commit' }
+  | { type: 'cancel' }
+
+export type StreamServerMessage =
+  | { type: 'session.ready'; model: string }
+  | { type: 'partial'; text: string }
+  | { type: 'final'; text: string }
+  | { type: 'error'; message: string }

@@ -76,10 +76,7 @@ export function Sidebar({ page, onNavigate, pillState }: Props): JSX.Element {
       ))}
 
       <div className="mt-auto border-t border-rule" style={{ padding: '12px 10px 0' }}>
-        <div className="font-mono text-[10px] uppercase tracking-[0.1em] text-mute">
-          v0.1 · alpha
-        </div>
-        <div className="mt-1 text-[12px] text-mute">
+        <div className="text-[12px] text-mute">
           <StatusBlurb state={pillState} />
         </div>
       </div>

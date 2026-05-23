@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server'
 import { randomBytes } from 'crypto'
 import { buildRouter } from './router'
 import { probeModel } from './lib/model-manager'
+import { attachStreamServer } from './stream'
 import type { ServerBootstrap } from '../shared/types'
 
 export async function startBackend(): Promise<ServerBootstrap> {
@@ -19,6 +20,7 @@ export async function startBackend(): Promise<ServerBootstrap> {
         resolve({ baseUrl, token })
       }
     )
+    attachStreamServer(server, token)
     server.on('error', reject)
   })
 }

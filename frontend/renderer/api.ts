@@ -14,6 +14,10 @@ export async function initApi(): Promise<void> {
   token = bs.token
 }
 
+export function getBootstrap(): { baseUrl: string; token: string } {
+  return { baseUrl, token }
+}
+
 function headers(extra: Record<string, string> = {}): Record<string, string> {
   return { 'x-freestyle-token': token, ...extra }
 }

@@ -220,6 +220,19 @@ export function Settings({
           >
             {keyStatus && <ApiKeyField status={keyStatus} onChange={refresh} />}
           </SettingsRow>
+
+          {settings.cloudModel !== 'whisper-1' && (
+            <SettingsRow
+              label="Stream transcript"
+              desc="Send audio as you speak so paste fires fast on release. Falls back to batch on error."
+              beta
+            >
+              <Toggle
+                value={settings.streaming}
+                onChange={v => update({ streaming: v })}
+              />
+            </SettingsRow>
+          )}
         </>
       )}
 
@@ -371,6 +384,36 @@ function Segment({
         )
       })}
     </div>
+  )
+}
+
+function Toggle({
+  value,
+  onChange
+}: {
+  value: boolean
+  onChange: (v: boolean) => void
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className={`relative inline-flex items-center transition ${
+        value ? 'bg-ink' : 'bg-rule'
+      }`}
+      style={{ width: 38, height: 22, borderRadius: 999 }}
+      aria-pressed={value}
+    >
+      <span
+        className="absolute bg-paper transition-[left]"
+        style={{
+          left: value ? 18 : 2,
+          width: 18,
+          height: 18,
+          borderRadius: 999
+        }}
+      />
+    </button>
   )
 }
 
