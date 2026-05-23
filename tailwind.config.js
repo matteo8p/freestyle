@@ -4,6 +4,16 @@ export default {
   theme: {
     extend: {
       fontFamily: {
+        sans: [
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          '"Helvetica Neue"',
+          'Arial',
+          'sans-serif'
+        ],
         serif: [
           'Iowan Old Style',
           'Palatino Linotype',
@@ -11,14 +21,24 @@ export default {
           'Times New Roman',
           'Times',
           'serif'
+        ],
+        mono: [
+          '"SF Mono"',
+          'Menlo',
+          'Monaco',
+          'Consolas',
+          '"Liberation Mono"',
+          '"Courier New"',
+          'monospace'
         ]
       },
       colors: {
         paper: '#ffffff',
-        surface: '#ffffff',
-        ink: '#1c1b18',
-        muted: '#6b6b6b',
-        rule: '#e5e5e5',
+        surface: '#fafafa',
+        ink: '#0f0f0f',
+        muted: '#737373',
+        subtle: '#f4f4f5',
+        rule: '#e7e7e7',
         accent: '#9c2a2a'
       }
     }

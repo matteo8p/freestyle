@@ -123,7 +123,11 @@ export function App(): JSX.Element {
         pillState={pill}
         pillMessage={pillMessage}
       />
-      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto px-16 py-16">
+      <main className="relative flex min-w-0 flex-1 flex-col overflow-y-auto bg-paper px-12 pb-12 pt-16">
+        <div
+          className="absolute inset-x-0 top-0 h-10"
+          style={{ WebkitAppRegion: 'drag' }}
+        />
         {page === 'home' ? (
           <HomePage
             pillState={pill}

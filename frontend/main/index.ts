@@ -21,6 +21,8 @@ async function createWindow(): Promise<void> {
     autoHideMenuBar: true,
     backgroundColor: '#ffffff',
     title: 'Freestyle',
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 16 },
     webPreferences: {
       preload: path.join(__dirname, '../preload/preload.cjs'),
       sandbox: false,

@@ -6,4 +6,10 @@ declare global {
   }
 }
 
+declare module 'react' {
+  interface CSSProperties {
+    WebkitAppRegion?: 'drag' | 'no-drag'
+  }
+}
+
 export {}

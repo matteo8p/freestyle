@@ -46,38 +46,38 @@ export function ApiKeyField({ status, onChange }: Props): JSX.Element {
   return (
     <div className="space-y-2">
       {!editing && status.openai.present ? (
-        <div className="flex items-center gap-3">
-          <code className="font-serif text-[15px] italic text-ink">
+        <div className="flex items-center gap-2">
+          <code className="flex-1 rounded-md border border-rule bg-surface px-3 py-2 font-mono text-[13px] text-ink">
             sk-…{status.openai.lastFour}
           </code>
           <button
             disabled={busy}
             onClick={() => setEditing(true)}
-            className="italic text-muted underline-offset-4 hover:text-ink hover:underline"
+            className="rounded-md border border-rule bg-paper px-3 py-2 text-[12.5px] font-medium text-ink transition hover:border-ink/40 hover:bg-subtle/40 disabled:opacity-40"
           >
-            replace
+            Replace
           </button>
           <button
             disabled={busy}
             onClick={clear}
-            className="italic text-accent underline-offset-4 hover:underline"
+            className="rounded-md border border-rule bg-paper px-3 py-2 text-[12.5px] font-medium text-accent transition hover:border-accent/60 hover:bg-accent/5 disabled:opacity-40"
           >
-            clear
+            Clear
           </button>
         </div>
       ) : (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <input
             type="password"
-            placeholder="sk-…"
+            placeholder="sk-..."
             value={value}
             onChange={e => setValue(e.target.value)}
-            className="w-full border-b border-rule bg-transparent py-2 font-serif text-[15px] text-ink placeholder:italic placeholder:text-muted focus:border-ink focus:outline-none"
+            className="w-full rounded-md border border-rule bg-paper px-3 py-2 font-mono text-[13px] text-ink placeholder:text-muted transition hover:border-ink/40 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
           />
           <button
             disabled={busy || !value.trim()}
             onClick={save}
-            className="shrink-0 border border-ink px-3 py-1.5 text-[14px] text-ink hover:bg-ink hover:text-paper disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-ink bg-ink px-3 py-2 text-[12.5px] font-medium text-paper transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Save
           </button>
@@ -88,16 +88,16 @@ export function ApiKeyField({ status, onChange }: Props): JSX.Element {
                 setEditing(false)
                 setValue('')
               }}
-              className="shrink-0 italic text-muted hover:text-ink"
+              className="rounded-md border border-rule bg-paper px-3 py-2 text-[12.5px] font-medium text-muted transition hover:border-ink/40 hover:text-ink"
             >
-              cancel
+              Cancel
             </button>
           )}
         </div>
       )}
 
-      {err && <p className="text-[13px] italic text-accent">{err}</p>}
-      <p className="text-[13px] italic text-muted">
+      {err && <p className="text-[12.5px] text-accent">{err}</p>}
+      <p className="text-[12.5px] text-muted">
         Stored encrypted via macOS Keychain. Never logged, never sent anywhere
         except api.openai.com.
       </p>

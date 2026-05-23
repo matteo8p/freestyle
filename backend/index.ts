@@ -1,11 +1,14 @@
 import { serve } from '@hono/node-server'
 import { randomBytes } from 'crypto'
 import { buildRouter } from './router'
+import { probeModel } from './lib/model-manager'
 import type { ServerBootstrap } from '../shared/types'
 
 export async function startBackend(): Promise<ServerBootstrap> {
   const token = randomBytes(24).toString('hex')
   const app = buildRouter(token)
+
+  await probeModel()
 
   return new Promise((resolve, reject) => {
     const server = serve(

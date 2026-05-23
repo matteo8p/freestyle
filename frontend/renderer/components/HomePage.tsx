@@ -46,16 +46,18 @@ export function HomePage({
   const dotColor =
     pillState === 'recording' || pillState === 'error'
       ? 'bg-accent'
-      : 'bg-muted'
+      : 'bg-muted/60'
 
   return (
-    <div className="max-w-xl space-y-12">
+    <div className="mx-auto w-full max-w-2xl space-y-10">
       <Section label="Hotkey">
-        <div className="flex items-baseline gap-3">
-          <span className="text-2xl leading-none">🌐</span>
+        <div className="flex items-center gap-4">
+          <Kbd>Fn</Kbd>
           <div>
-            <div className="text-[17px] text-ink">Fn / globe key</div>
-            <div className="text-[13px] italic text-muted">
+            <div className="text-[14px] font-medium text-ink">
+              Globe key
+            </div>
+            <div className="text-[13px] text-muted">
               Hold to record, release to transcribe and paste.
             </div>
           </div>
@@ -73,8 +75,10 @@ export function HomePage({
             />
           </span>
           <div>
-            <div className="text-[17px] text-ink">{status.label}</div>
-            <div className="text-[13px] italic text-muted">
+            <div className="text-[14px] font-medium text-ink">
+              {status.label}
+            </div>
+            <div className="text-[13px] text-muted">
               {pillState === 'error' && pillMessage ? pillMessage : status.sub}
             </div>
           </div>
@@ -83,11 +87,11 @@ export function HomePage({
 
       <Section label="Last transcript">
         {lastTranscript ? (
-          <p className="whitespace-pre-wrap text-[17px] leading-relaxed text-ink">
+          <p className="whitespace-pre-wrap font-serif text-[20px] leading-[1.55] italic text-ink">
             &ldquo;{lastTranscript}&rdquo;
           </p>
         ) : (
-          <p className="text-[15px] italic text-muted">
+          <p className="text-[13px] text-muted">
             No transcript yet. Hold the hotkey and say something.
           </p>
         )}
@@ -105,13 +109,18 @@ function Section({
 }): JSX.Element {
   return (
     <section>
-      <div className="mb-2 flex items-center gap-3">
-        <h2 className="text-[11px] uppercase tracking-[0.18em] text-muted">
-          {label}
-        </h2>
-        <span className="h-px flex-1 bg-rule" />
-      </div>
-      <div className="pt-2">{children}</div>
+      <h2 className="mb-3 text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
+        {label}
+      </h2>
+      <div>{children}</div>
     </section>
+  )
+}
+
+function Kbd({ children }: { children: React.ReactNode }): JSX.Element {
+  return (
+    <span className="inline-flex h-11 min-w-[2.75rem] items-center justify-center rounded-lg border border-rule bg-surface px-3 font-mono text-[14px] text-ink shadow-[inset_0_-1px_0_0_rgb(0_0_0/0.04)]">
+      {children}
+    </span>
   )
 }

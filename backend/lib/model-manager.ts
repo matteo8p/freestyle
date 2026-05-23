@@ -123,3 +123,14 @@ export function ensureModel(): Promise<string> {
   })
   return inFlight
 }
+
+export async function probeModel(): Promise<void> {
+  const target = modelPath()
+  try {
+    await fs.access(target)
+    await ensureWhisperLink(target)
+    state = { downloaded: true }
+  } catch {
+    state = { downloaded: false }
+  }
+}
