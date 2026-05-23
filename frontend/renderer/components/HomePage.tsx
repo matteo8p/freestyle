@@ -1,4 +1,5 @@
-import type { JSX } from 'react'
+import { useMemo, type JSX, type ReactNode } from 'react'
+import { Squiggle, Underwave, QuoteCurls, MicGlyph, COLORS } from './art'
 
 export type PillState =
   | 'idle'
@@ -13,113 +14,260 @@ interface Props {
   lastTranscript: string
 }
 
-const STATUS_COPY: Record<PillState, { label: string; sub: string }> = {
-  idle: {
-    label: 'Ready',
-    sub: 'Hold the hotkey to start dictating.'
-  },
-  recording: {
-    label: 'Listening',
-    sub: 'Speak naturally — release the hotkey when done.'
-  },
-  transcribing: {
-    label: 'Transcribing',
-    sub: 'Turning your speech into text.'
-  },
-  pasting: {
-    label: 'Pasting',
-    sub: 'Inserting at your cursor.'
-  },
-  error: {
-    label: 'Error',
-    sub: 'Something went wrong on the last run.'
-  }
-}
-
 export function HomePage({
   pillState,
   pillMessage,
   lastTranscript
 }: Props): JSX.Element {
-  const status = STATUS_COPY[pillState]
-  const isRecording = pillState === 'recording'
-  const dotColor =
-    pillState === 'recording' || pillState === 'error'
-      ? 'bg-accent'
-      : 'bg-muted/60'
+  const dateLabel = useMemo(
+    () =>
+      new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric'
+      }),
+    []
+  )
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-10">
-      <Section label="Hotkey">
-        <div className="flex items-center gap-4">
-          <Kbd>Fn</Kbd>
-          <div>
-            <div className="text-[14px] font-medium text-ink">
-              Globe key
-            </div>
-            <div className="text-[13px] text-muted">
-              Hold to record, release to transcribe and paste.
-            </div>
-          </div>
-        </div>
-      </Section>
+    <div
+      className="relative flex h-full flex-col overflow-hidden"
+      style={{ padding: '56px 64px', gap: 36 }}
+    >
+      <div
+        style={{ position: 'absolute', top: 28, right: -20, opacity: 0.55 }}
+      >
+        <Squiggle width={260} height={42} stroke={COLORS.INK} weight={2.5} />
+      </div>
 
-      <Section label="Status">
-        <div className="flex items-center gap-3">
-          <span className="relative flex h-2 w-2">
-            {isRecording && (
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
-            )}
+      <div className="flex flex-col" style={{ gap: 8 }}>
+        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">
+          {dateLabel}
+        </div>
+        <h1
+          className="font-display m-0 text-ink"
+          style={{
+            fontSize: 84,
+            fontWeight: 700,
+            lineHeight: 0.9,
+            letterSpacing: '-0.035em',
+            fontVariationSettings: `'wdth' 85, 'opsz' 96`
+          }}
+        >
+          Hold{' '}
+          <span
+            style={{
+              position: 'relative',
+              fontStyle: 'italic',
+              fontWeight: 500,
+              color: COLORS.INK,
+              fontVariationSettings: `'wdth' 100`
+            }}
+          >
+            fn
             <span
-              className={`relative inline-flex h-2 w-2 rounded-full ${dotColor}`}
-            />
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: -10
+              }}
+            >
+              <Underwave width={130} height={14} color={COLORS.CORAL} weight={3.5} />
+            </span>
           </span>
-          <div>
-            <div className="text-[14px] font-medium text-ink">
-              {status.label}
-            </div>
-            <div className="text-[13px] text-muted">
-              {pillState === 'error' && pillMessage ? pillMessage : status.sub}
-            </div>
-          </div>
-        </div>
-      </Section>
+          , speak,
+          <br />
+          release.
+        </h1>
+      </div>
 
-      <Section label="Last transcript">
-        {lastTranscript ? (
-          <p className="whitespace-pre-wrap font-serif text-[20px] leading-[1.55] italic text-ink">
-            &ldquo;{lastTranscript}&rdquo;
-          </p>
-        ) : (
-          <p className="text-[13px] text-muted">
-            No transcript yet. Hold the hotkey and say something.
-          </p>
-        )}
-      </Section>
+      <ListeningCard pillState={pillState} pillMessage={pillMessage} />
+
+      <TranscriptSection text={lastTranscript} />
+
+      <FooterStats />
     </div>
   )
 }
 
-function Section({
-  label,
-  children
+function ListeningCard({
+  pillState,
+  pillMessage
 }: {
-  label: string
-  children: React.ReactNode
+  pillState: PillState
+  pillMessage?: string
 }): JSX.Element {
+  const isRecording = pillState === 'recording'
+  const isError = pillState === 'error'
+
+  const headline =
+    pillState === 'recording'
+      ? 'Listening…'
+      : pillState === 'transcribing'
+        ? 'Transcribing…'
+        : pillState === 'pasting'
+          ? 'Pasting at your cursor.'
+          : pillState === 'error'
+            ? pillMessage ?? 'Something went wrong'
+            : 'Ready when you are'
+
+  const sub = (
+    <>
+      Hold <Kbd>fn</Kbd> anywhere — the cursor doesn&rsquo;t have to be here.
+    </>
+  )
+
   return (
-    <section>
-      <h2 className="mb-3 text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
-        {label}
-      </h2>
-      <div>{children}</div>
-    </section>
+    <div
+      className="flex items-center rounded-2xl border border-rule bg-white"
+      style={{ padding: 22, gap: 22 }}
+    >
+      <div
+        className="flex shrink-0 items-center justify-center rounded-full border border-rule bg-paper-deep"
+        style={{ width: 56, height: 56 }}
+      >
+        <MicGlyph color={COLORS.INK} size={24} />
+      </div>
+      <div className="flex-1">
+        <div className="text-[15px] font-semibold text-ink" style={{ marginBottom: 4 }}>
+          {headline}
+        </div>
+        <div className="text-[13px] text-mute">{sub}</div>
+      </div>
+      <MicBadge isRecording={isRecording} isError={isError} />
+    </div>
   )
 }
 
-function Kbd({ children }: { children: React.ReactNode }): JSX.Element {
+function MicBadge({
+  isRecording,
+  isError
+}: {
+  isRecording: boolean
+  isError: boolean
+}): JSX.Element {
+  if (isError) {
+    return (
+      <div className="flex items-center gap-2.5 text-[12px] font-semibold text-coral">
+        <span className="h-2 w-2 rounded-full bg-coral" />
+        Error
+      </div>
+    )
+  }
+  if (isRecording) {
+    return (
+      <div className="flex items-center gap-2.5 text-[12px] font-semibold text-coral">
+        <span className="relative inline-flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-coral opacity-60" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-coral" />
+        </span>
+        Live
+      </div>
+    )
+  }
   return (
-    <span className="inline-flex h-11 min-w-[2.75rem] items-center justify-center rounded-lg border border-rule bg-surface px-3 font-mono text-[14px] text-ink shadow-[inset_0_-1px_0_0_rgb(0_0_0/0.04)]">
+    <div className="flex items-center gap-2.5 text-[12px] font-semibold text-sage">
+      <span className="h-2 w-2 rounded-full bg-sage" />
+      Mic OK
+    </div>
+  )
+}
+
+function TranscriptSection({ text }: { text: string }): JSX.Element {
+  const wordCount = text.trim().length === 0 ? 0 : text.trim().split(/\s+/).length
+
+  return (
+    <div className="flex flex-col" style={{ gap: 14 }}>
+      <div className="flex items-center" style={{ gap: 10 }}>
+        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">
+          Last transcript
+        </div>
+        <div className="h-px flex-1 bg-rule" />
+        <div className="font-mono text-[11px] text-mute">
+          {text ? `${wordCount} word${wordCount === 1 ? '' : 's'}` : 'no transcripts yet'}
+        </div>
+      </div>
+      <div className="flex items-start" style={{ gap: 18 }}>
+        <QuoteCurls
+          size={56}
+          stroke={COLORS.INK}
+          color2={COLORS.CORAL}
+          weight={3.5}
+          style={{ marginTop: 6, flexShrink: 0 }}
+        />
+        <p
+          className="font-display m-0 italic"
+          style={{
+            fontSize: 26,
+            fontWeight: 450,
+            lineHeight: 1.35,
+            color: '#2B2620',
+            fontVariationSettings: `'wdth' 95, 'opsz' 36`,
+            maxWidth: 760,
+            textWrap: 'pretty'
+          }}
+        >
+          {text ? text : 'Your latest transcript will land here. Hold the hotkey and say something.'}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function FooterStats(): JSX.Element {
+  return (
+    <div
+      className="mt-auto grid grid-cols-3 border-t border-rule"
+      style={{ gap: 20, paddingTop: 20 }}
+    >
+      <Stat n="Fn" l="hold to talk" />
+      <Stat n="0.5s" l="typical latency" />
+      <Stat n="100%" l="local — no cloud" accent={COLORS.SAGE} />
+    </div>
+  )
+}
+
+function Stat({
+  n,
+  l,
+  accent
+}: {
+  n: string
+  l: string
+  accent?: string
+}): JSX.Element {
+  return (
+    <div>
+      <div
+        className="font-display"
+        style={{
+          fontSize: 38,
+          fontWeight: 600,
+          color: accent || COLORS.INK,
+          fontVariationSettings: `'wdth' 85, 'opsz' 48`,
+          letterSpacing: '-0.02em',
+          lineHeight: 1
+        }}
+      >
+        {n}
+      </div>
+      <div
+        className="text-mute"
+        style={{ fontSize: 12, marginTop: 6, letterSpacing: '0.02em' }}
+      >
+        {l}
+      </div>
+    </div>
+  )
+}
+
+function Kbd({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <span
+      className="font-mono inline-flex items-center rounded-md border border-rule bg-paper-deep text-[11px] font-medium text-ink"
+      style={{ padding: '2px 7px' }}
+    >
       {children}
     </span>
   )

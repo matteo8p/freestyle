@@ -1,6 +1,7 @@
 import { useState, type JSX } from 'react'
 import { api } from '../api'
 import type { ApiKeyStatus } from '@shared/types'
+import { chipBtnStyle, ghostBtnStyle } from './Settings'
 
 interface Props {
   status: ApiKeyStatus
@@ -46,38 +47,50 @@ export function ApiKeyField({ status, onChange }: Props): JSX.Element {
   return (
     <div className="space-y-2">
       {!editing && status.openai.present ? (
-        <div className="flex items-center gap-2">
-          <code className="flex-1 rounded-md border border-rule bg-surface px-3 py-2 font-mono text-[13px] text-ink">
-            sk-…{status.openai.lastFour}
-          </code>
-          <button
-            disabled={busy}
-            onClick={() => setEditing(true)}
-            className="rounded-md border border-rule bg-paper px-3 py-2 text-[12.5px] font-medium text-ink transition hover:border-ink/40 hover:bg-subtle/40 disabled:opacity-40"
+        <div className="flex items-center" style={{ gap: 10 }}>
+          <div
+            className="font-mono rounded-lg border border-rule bg-paper-deep text-ink-soft"
+            style={{
+              fontSize: 13,
+              padding: '8px 12px',
+              letterSpacing: '0.04em'
+            }}
           >
+            sk-…·{status.openai.lastFour}
+          </div>
+          <button disabled={busy} onClick={() => setEditing(true)} style={chipBtnStyle}>
             Replace
           </button>
           <button
             disabled={busy}
             onClick={clear}
-            className="rounded-md border border-rule bg-paper px-3 py-2 text-[12.5px] font-medium text-accent transition hover:border-accent/60 hover:bg-accent/5 disabled:opacity-40"
+            style={{ ...ghostBtnStyle, color: '#F5511D' }}
           >
             Clear
           </button>
         </div>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center" style={{ gap: 10 }}>
           <input
             type="password"
             placeholder="sk-..."
             value={value}
             onChange={e => setValue(e.target.value)}
-            className="w-full rounded-md border border-rule bg-paper px-3 py-2 font-mono text-[13px] text-ink placeholder:text-muted transition hover:border-ink/40 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="font-mono w-full rounded-lg border border-rule bg-white text-ink placeholder:text-mute"
+            style={{
+              padding: '8px 12px',
+              fontSize: 13,
+              letterSpacing: '0.04em'
+            }}
           />
           <button
             disabled={busy || !value.trim()}
             onClick={save}
-            className="rounded-md border border-ink bg-ink px-3 py-2 text-[12.5px] font-medium text-paper transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-40"
+            style={{
+              ...chipBtnStyle,
+              opacity: busy || !value.trim() ? 0.4 : 1,
+              cursor: busy || !value.trim() ? 'not-allowed' : 'pointer'
+            }}
           >
             Save
           </button>
@@ -88,7 +101,7 @@ export function ApiKeyField({ status, onChange }: Props): JSX.Element {
                 setEditing(false)
                 setValue('')
               }}
-              className="rounded-md border border-rule bg-paper px-3 py-2 text-[12.5px] font-medium text-muted transition hover:border-ink/40 hover:text-ink"
+              style={ghostBtnStyle}
             >
               Cancel
             </button>
@@ -96,11 +109,7 @@ export function ApiKeyField({ status, onChange }: Props): JSX.Element {
         </div>
       )}
 
-      {err && <p className="text-[12.5px] text-accent">{err}</p>}
-      <p className="text-[12.5px] text-muted">
-        Stored encrypted via macOS Keychain. Never logged, never sent anywhere
-        except api.openai.com.
-      </p>
+      {err && <p className="text-[12.5px] text-coral">{err}</p>}
     </div>
   )
 }

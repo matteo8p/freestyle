@@ -19,7 +19,7 @@ async function createWindow(): Promise<void> {
     minHeight: 520,
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F1EBDD',
     title: 'Freestyle',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },

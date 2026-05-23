@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from 'react'
+import { useEffect, useState, type JSX, type ReactNode } from 'react'
 import { api } from '../api'
 import { ApiKeyField } from './ApiKeyField'
 import type {
@@ -109,202 +109,328 @@ export function Settings({
     }
   }
 
-  return (
-    <div className="mx-auto w-full max-w-2xl space-y-10">
-      <Section label="Microphone">
-        <Select
-          value={settings.inputDeviceId ?? ''}
-          onChange={v => update({ inputDeviceId: v || null })}
-        >
-          <option value="">System default</option>
-          {inputDevices.map(d => (
-            <option key={d.deviceId} value={d.deviceId}>
-              {d.label || `Microphone (${d.deviceId.slice(0, 6)}…)`}
-            </option>
-          ))}
-        </Select>
-        <p className="mt-2 text-[12.5px] text-muted">
-          Pin to the built-in mic so Bluetooth headphones stay in high-quality
-          A2DP mode and keep noise cancelling on.
-        </p>
-        {deviceError && (
-          <p className="mt-1 text-[12.5px] text-accent">{deviceError}</p>
-        )}
-      </Section>
+  const selectedMicLabel =
+    settings.inputDeviceId == null
+      ? 'System default'
+      : inputDevices.find(d => d.deviceId === settings.inputDeviceId)?.label ||
+        'System default'
 
-      <Section label="Transcription backend">
-        <div className="grid grid-cols-2 gap-3">
-          <BackendOption
-            label="Local"
-            sub="whisper.cpp on this Mac"
-            active={settings.backend === 'local'}
-            onClick={() => update({ backend: 'local' })}
-          />
-          <BackendOption
-            label="Cloud"
-            sub="OpenAI (your API key)"
-            active={settings.backend === 'cloud'}
-            onClick={() => update({ backend: 'cloud' })}
-          />
+  const downloadPct = models?.local.downloaded
+    ? 100
+    : modelProgress ?? models?.local.downloadingPercent ?? 0
+
+  return (
+    <div
+      className="flex h-full flex-col overflow-y-auto"
+      style={{ padding: '48px 64px', gap: 32 }}
+    >
+      <div>
+        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute" style={{ marginBottom: 8 }}>
+          Settings
         </div>
-      </Section>
+        <h1
+          className="font-display m-0 text-ink"
+          style={{
+            fontSize: 56,
+            fontWeight: 700,
+            lineHeight: 0.95,
+            letterSpacing: '-0.035em',
+            fontVariationSettings: `'wdth' 85, 'opsz' 60`
+          }}
+        >
+          Make it yours.
+        </h1>
+      </div>
+
+      <SettingsRow
+        label="Hotkey"
+        desc="Hold to record, release to transcribe."
+      >
+        <div className="flex items-center" style={{ gap: 8 }}>
+          <KbdBig>fn</KbdBig>
+          <span className="text-[12px] text-mute">globe key</span>
+        </div>
+      </SettingsRow>
+
+      <SettingsRow
+        label="Transcription"
+        desc="Where audio is turned into text."
+      >
+        <Segment
+          options={[
+            { id: 'local', label: 'On-device', sub: 'whisper.cpp · base.en' },
+            { id: 'cloud', label: 'Cloud', sub: 'OpenAI · BYOK' }
+          ]}
+          active={settings.backend}
+          onChange={id => update({ backend: id as 'local' | 'cloud' })}
+        />
+      </SettingsRow>
 
       {settings.backend === 'local' && models && (
-        <Section label="Local model">
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-rule bg-surface px-4 py-3">
-            <div>
-              <div className="text-[13.5px] font-medium text-ink">
-                Whisper base.en
+        <SettingsRow
+          label="Local model"
+          desc="60 MB, lives in Application Support."
+        >
+          <div className="flex items-center" style={{ gap: 14 }}>
+            <ProgressBar percent={downloadPct} />
+            {models.local.downloaded ? (
+              <div className="text-[13px] font-semibold text-sage">Downloaded</div>
+            ) : modelProgress != null ? (
+              <div className="text-[13px] font-semibold text-coral">
+                {modelProgress}%
               </div>
-              <div className="font-mono text-[12px] text-muted">
-                ggml-base.en · q5_1 · ~60 MB
+            ) : models.local.downloadingPercent != null ? (
+              <div className="text-[13px] font-semibold text-coral">
+                {models.local.downloadingPercent}%
               </div>
-            </div>
-            <div className="text-[12.5px]">
-              {models.local.downloaded ? (
-                <span className="inline-flex items-center gap-1.5 text-muted">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Installed
-                </span>
-              ) : modelProgress != null ? (
-                <span className="text-accent">Downloading {modelProgress}%</span>
-              ) : models.local.downloadingPercent != null ? (
-                <span className="text-accent">
-                  Downloading {models.local.downloadingPercent}%
-                </span>
-              ) : downloadStarting ? (
-                <span className="text-accent">Starting…</span>
-              ) : (
-                <button
-                  onClick={startDownload}
-                  className="rounded-md border border-ink bg-ink px-3 py-1.5 text-[12.5px] font-medium text-paper transition hover:bg-ink/90"
-                >
-                  Download
-                </button>
-              )}
-            </div>
+            ) : downloadStarting ? (
+              <div className="text-[13px] font-semibold text-coral">Starting…</div>
+            ) : (
+              <button onClick={startDownload} style={chipBtnStyle}>
+                Download
+              </button>
+            )}
           </div>
           {downloadError && (
-            <p className="mt-2 text-[12.5px] text-accent">{downloadError}</p>
+            <p className="mt-2 text-[12.5px] text-coral">{downloadError}</p>
           )}
-        </Section>
+        </SettingsRow>
       )}
 
       {settings.backend === 'cloud' && (
         <>
-          <Section label="Cloud model">
-            <Select
+          <SettingsRow
+            label="Cloud model"
+            desc="Which OpenAI transcription endpoint to call."
+          >
+            <Dropdown
               value={settings.cloudModel}
+              options={[
+                { value: 'gpt-4o-mini-transcribe', label: 'gpt-4o-mini-transcribe' },
+                { value: 'gpt-4o-transcribe', label: 'gpt-4o-transcribe' },
+                { value: 'whisper-1', label: 'whisper-1' }
+              ]}
               onChange={v => update({ cloudModel: v as CloudModel })}
-            >
-              <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
-              <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
-              <option value="whisper-1">whisper-1</option>
-            </Select>
-          </Section>
+            />
+          </SettingsRow>
 
-          <Section label="OpenAI API key">
+          <SettingsRow
+            label="OpenAI API key"
+            desc="Stored encrypted in macOS Keychain. Never logged."
+          >
             {keyStatus && <ApiKeyField status={keyStatus} onChange={refresh} />}
-          </Section>
+          </SettingsRow>
         </>
       )}
+
+      <SettingsRow
+        label="Microphone"
+        desc="Pin to internal mic so Bluetooth headphones stay high-quality."
+      >
+        <Dropdown
+          value={settings.inputDeviceId ?? ''}
+          renderValue={selectedMicLabel}
+          options={[
+            { value: '', label: 'System default' },
+            ...inputDevices.map(d => ({
+              value: d.deviceId,
+              label: d.label || `Microphone (${d.deviceId.slice(0, 6)}…)`
+            }))
+          ]}
+          onChange={v => update({ inputDeviceId: v || null })}
+        />
+        {deviceError && (
+          <p className="mt-2 text-[12.5px] text-coral">{deviceError}</p>
+        )}
+      </SettingsRow>
     </div>
   )
 }
 
-function Section({
+function SettingsRow({
   label,
-  children
+  desc,
+  children,
+  beta
 }: {
   label: string
-  children: React.ReactNode
+  desc: string
+  children: ReactNode
+  beta?: boolean
 }): JSX.Element {
   return (
-    <section>
-      <h2 className="mb-3 text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
-        {label}
-      </h2>
+    <div
+      className="grid items-start border-b border-rule"
+      style={{
+        gridTemplateColumns: '280px 1fr',
+        gap: 32,
+        paddingBottom: 22
+      }}
+    >
+      <div>
+        <div className="flex items-center" style={{ gap: 8, marginBottom: 4 }}>
+          <div className="text-[15px] font-semibold text-ink">{label}</div>
+          {beta && (
+            <span
+              className="font-mono rounded-full bg-butter text-ink"
+              style={{
+                fontSize: 9,
+                padding: '2px 6px',
+                letterSpacing: '0.1em'
+              }}
+            >
+              BETA
+            </span>
+          )}
+        </div>
+        <div
+          className="text-mute"
+          style={{ fontSize: 12.5, lineHeight: 1.5, maxWidth: 260 }}
+        >
+          {desc}
+        </div>
+      </div>
       <div>{children}</div>
-    </section>
+    </div>
   )
 }
 
-function Select({
-  value,
-  onChange,
-  children
+function KbdBig({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <span
+      className="font-mono inline-flex items-center justify-center rounded-md border border-rule bg-white text-ink"
+      style={{
+        minWidth: 36,
+        height: 32,
+        padding: '0 9px',
+        borderBottom: '2px solid #D8CFB9',
+        fontSize: 13,
+        fontWeight: 500
+      }}
+    >
+      {children}
+    </span>
+  )
+}
+
+export const chipBtnStyle: React.CSSProperties = {
+  background: '#1B1814',
+  color: '#F1EBDD',
+  border: 'none',
+  padding: '7px 14px',
+  borderRadius: 7,
+  fontSize: 13,
+  fontFamily: 'inherit',
+  cursor: 'pointer',
+  fontWeight: 500
+}
+
+export const ghostBtnStyle: React.CSSProperties = {
+  background: 'transparent',
+  color: '#2B2620',
+  border: '1px solid #D8CFB9',
+  padding: '6px 12px',
+  borderRadius: 7,
+  fontSize: 12.5,
+  fontFamily: 'inherit',
+  cursor: 'pointer'
+}
+
+function Segment({
+  options,
+  active,
+  onChange
 }: {
-  value: string
-  onChange: (v: string) => void
-  children: React.ReactNode
+  options: { id: string; label: string; sub: string }[]
+  active: string
+  onChange: (id: string) => void
 }): JSX.Element {
   return (
-    <div className="relative">
+    <div
+      className="inline-flex items-stretch rounded-[10px] border border-rule bg-paper-deep"
+      style={{ padding: 4, gap: 4 }}
+    >
+      {options.map(o => {
+        const isOn = o.id === active
+        return (
+          <button
+            key={o.id}
+            onClick={() => onChange(o.id)}
+            className={`flex flex-col rounded-[7px] border text-left transition ${
+              isOn
+                ? 'border-rule bg-paper shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+                : 'border-transparent hover:bg-paper/50'
+            }`}
+            style={{ padding: '8px 14px' }}
+          >
+            <div className="text-[13px] font-semibold text-ink">{o.label}</div>
+            <div className="font-mono text-[10px] text-mute" style={{ letterSpacing: '0.04em' }}>
+              {o.sub}
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function ProgressBar({ percent }: { percent: number }): JSX.Element {
+  return (
+    <div
+      className="overflow-hidden rounded-full bg-paper-deep"
+      style={{ width: 160, height: 6 }}
+    >
+      <div
+        className="h-full rounded-full bg-sage transition-[width] duration-200"
+        style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
+      />
+    </div>
+  )
+}
+
+function Dropdown({
+  value,
+  options,
+  onChange,
+  renderValue
+}: {
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (v: string) => void
+  renderValue?: string
+}): JSX.Element {
+  return (
+    <div className="relative inline-flex" style={{ minWidth: 280 }}>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full appearance-none rounded-md border border-rule bg-paper px-3 py-2 pr-9 text-[13.5px] text-ink transition hover:border-ink/40 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+        className="w-full appearance-none rounded-lg border border-rule bg-white text-ink"
+        style={{
+          padding: '8px 32px 8px 12px',
+          fontSize: 13,
+          fontFamily: 'inherit'
+        }}
       >
-        {children}
+        {options.map(o => (
+          <option key={o.value} value={o.value}>
+            {renderValue && o.value === value ? renderValue : o.label}
+          </option>
+        ))}
       </select>
       <svg
-        className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+        width="10"
+        height="6"
+        viewBox="0 0 10 6"
       >
-        <path d="m6 9 6 6 6-6" />
+        <path
+          d="M1 1l4 4 4-4"
+          stroke="#8E8473"
+          strokeWidth="1.4"
+          fill="none"
+          strokeLinecap="round"
+        />
       </svg>
     </div>
-  )
-}
-
-function BackendOption({
-  label,
-  sub,
-  active,
-  onClick
-}: {
-  label: string
-  sub: string
-  active: boolean
-  onClick: () => void
-}): JSX.Element {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`group relative rounded-lg border px-4 py-3 text-left transition ${
-        active
-          ? 'border-ink bg-ink text-paper'
-          : 'border-rule bg-paper text-ink hover:border-ink/40 hover:bg-subtle/40'
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-[13.5px] font-medium">{label}</span>
-        {active && (
-          <svg
-            className="h-4 w-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-        )}
-      </div>
-      <div
-        className={`mt-0.5 text-[12px] ${active ? 'text-paper/70' : 'text-muted'}`}
-      >
-        {sub}
-      </div>
-    </button>
   )
 }

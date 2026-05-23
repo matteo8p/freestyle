@@ -5,6 +5,7 @@ export default {
     extend: {
       fontFamily: {
         sans: [
+          '"Inter Tight"',
           'system-ui',
           '-apple-system',
           'BlinkMacSystemFont',
@@ -14,32 +15,33 @@ export default {
           'Arial',
           'sans-serif'
         ],
-        serif: [
-          'Iowan Old Style',
-          'Palatino Linotype',
-          'Palatino',
-          'Times New Roman',
-          'Times',
-          'serif'
+        display: [
+          '"Bricolage Grotesque"',
+          'system-ui',
+          'sans-serif'
         ],
         mono: [
+          '"JetBrains Mono"',
+          'ui-monospace',
           '"SF Mono"',
           'Menlo',
           'Monaco',
           'Consolas',
-          '"Liberation Mono"',
-          '"Courier New"',
           'monospace'
         ]
       },
       colors: {
-        paper: '#ffffff',
-        surface: '#fafafa',
-        ink: '#0f0f0f',
-        muted: '#737373',
-        subtle: '#f4f4f5',
-        rule: '#e7e7e7',
-        accent: '#9c2a2a'
+        paper: '#F1EBDD',
+        'paper-deep': '#E7DFCC',
+        ink: '#1B1814',
+        'ink-soft': '#2B2620',
+        mute: '#8E8473',
+        rule: '#D8CFB9',
+        coral: '#F5511D',
+        'coral-soft': '#FBB89E',
+        sage: '#6E8A6A',
+        'sage-soft': '#BFCFB9',
+        butter: '#F3CB58'
       }
     }
   },
