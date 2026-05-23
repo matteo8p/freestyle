@@ -33,16 +33,30 @@ The renderer talks **only** to our backend; the backend holds the OpenAI key (al
 
 ## Audio capture (renderer)
 
-Replace `MediaRecorder` with an `AudioContext` + `AudioWorkletNode` pipeline so we can emit raw PCM as it's captured rather than waiting for a finalized blob.
+`MediaRecorder` is replaced (for the streaming path) with an `AudioContext` + `AudioWorkletNode` pipeline so PCM can be emitted as it's captured rather than waiting for a finalized blob. `Recorder` stays in the codebase as the batch fallback.
 
-- `frontend/renderer/lib/pcm-worklet.ts` — `AudioWorkletProcessor` that:
-  - Receives 128-sample blocks from the input (Chromium's fixed worklet quantum).
-  - Downsamples from the device sample rate (typically 48 kHz) to **16 kHz mono** via a simple polyphase / linear-interp resampler. Speech doesn't need a high-quality filter here.
-  - Buffers into ~80 ms chunks (1280 samples) and posts each as an `Int16Array` to the main thread.
-- `frontend/renderer/lib/streamer.ts` — orchestrates:
-  - Opens the WebSocket to `ws://127.0.0.1:<port>/stream` with the existing `x-freestyle-token` (sent as a query param since browsers don't allow custom WS headers).
-  - Forwards each PCM chunk as a **binary** WS message.
-  - Receives **JSON** text-event messages and surfaces them to `App.tsx` via callbacks (`onPartial`, `onFinal`, `onError`).
+Files:
+
+- `frontend/renderer/lib/pcm-worklet.js` — `AudioWorkletProcessor` registered as `pcm-downsampler`. Receives 128-sample blocks (Chromium's fixed worklet quantum), linear-interp downsamples from the device sample rate (typically 48 kHz) to **16 kHz mono**, buffers into 1280-sample (80 ms) chunks, and `postMessage`s each as an `Int16Array`. Speech doesn't need a high-quality filter here.
+- `frontend/renderer/lib/audio-ctx.ts` — module-level lazy `AudioContext` + worklet-module loader. One context is shared across all sessions (constructing one + `addModule` is slow enough that doing it per-utterance would add ~50–150 ms to first-word latency). Exposes `getAudioContext()` and `prewarmAudio()` (no-throw fire-and-forget).
+- `frontend/renderer/lib/streamer.ts` — orchestrates one streaming session. Opens the WS, acquires the mic, builds the `source → AudioWorkletNode` graph, forwards chunks, collects events.
+- `frontend/renderer/lib/wav.ts` — `pcm16ToWavBlob(Int16Array[], sampleRate)` for the fallback path (see below).
+
+Two implementation details worth calling out:
+
+**Prewarm at boot.** `App.tsx` calls `prewarmAudio()` after `initApi()` resolves. This constructs the `AudioContext` and loads the worklet module before the user ever presses the hotkey. The cold path is one-time, ~50–150 ms; warm path is sub-millisecond.
+
+**Flush handshake on commit.** When the hotkey is released, the worklet may still hold a partial buffer that hasn't been emitted (chunks emit on 1280-sample boundaries). `streamer.commit()` does:
+
+1. `worklet.port.postMessage({ type: 'flush' })`
+2. Worklet emits any partial buffer, then posts `{ type: 'flushed' }`.
+3. Streamer awaits the `flushed` ack, then `stopCapture()` and sends `{ type: 'commit' }` over the WS.
+
+Without this, the tail ~80 ms of the utterance gets dropped on release.
+
+**Pre-ready buffering.** OpenAI rejects `input_audio_buffer.append` before the transcription session is configured. The Streamer queues binary chunks in `pendingWsChunks` until `session.ready` arrives, then flushes the queue before unblocking real-time forwarding.
+
+**WS auth.** Browsers can't set custom WS headers, so the existing per-launch token rides on the URL: `ws://127.0.0.1:<port>/stream?token=…`. Server is loopback-only.
 
 Bandwidth: 16 kHz × 16-bit mono = 32 KB/s. Per 80 ms chunk = 2.56 KB. Negligible.
 
@@ -71,10 +85,12 @@ OpenAI provides a **transcription-only Realtime session** (the lightweight cousi
 | binary PCM chunk → backend | `input_audio_buffer.append` with `audio: <base64 of chunk>` |
 | `commit` → backend | `input_audio_buffer.commit` then await `conversation.item.input_audio_transcription.completed` |
 | `cancel` → backend | close WS without commit |
-| `session.ready` → renderer | `session.created` from OpenAI |
-| `partial` → renderer | `conversation.item.input_audio_transcription.delta` (concatenated rolling text) |
-| `final` → renderer | `conversation.item.input_audio_transcription.completed` |
+| `session.ready` → renderer | any of `transcription_session.created`, `transcription_session.updated`, `session.created`, `session.updated` (whichever arrives first) |
+| `partial` → renderer | `conversation.item.input_audio_transcription.delta` — adapter accumulates deltas into rolling text and emits the full so-far string each event |
+| `final` → renderer | `conversation.item.input_audio_transcription.completed` (uses `evt.transcript` when present, otherwise falls back to the accumulated rolling text) |
 | `error` → renderer | any OpenAI `error` event, or our own surfaced exception |
+
+Partial-text accumulation happens in `openai-streaming.ts` (server-side), not in the renderer. The wire protocol between renderer and backend already specifies "overwrite previous partial," so the renderer just sets state — no diffing or stitching client-side.
 
 **Session config sent on open:**
 
@@ -99,41 +115,68 @@ The cloud model is whatever the user selected in Settings (`gpt-4o-mini-transcri
 
 New files:
 
-- `backend/routes/stream.ts` — upgrades HTTP to WebSocket via `@hono/node-ws`. On connect: validate token, open an outbound WS to OpenAI (`wss://api.openai.com/v1/realtime?intent=transcription`), wire the two sockets together, and translate events per the table above.
-- `backend/stt/openai-streaming.ts` — pure adapter: takes an upstream client WS and exposes typed callbacks (`onPartial`, `onFinal`, `onError`, `sendAudio`, `commit`, `close`). Keeps the Realtime protocol details contained.
+- `backend/stream.ts` — **top-level, not under `routes/`**, because the WebSocket upgrade is attached directly to the Node `http.Server` via `ws`'s `WebSocketServer({ noServer: true })` + the server's `'upgrade'` event. The Hono app doesn't see the handshake at all; we sidestep it because Hono's middleware can't cleanly hand off a raw TCP socket on an upgrade. Auth (the `?token=` check) is duplicated here rather than reusing the Hono middleware.
+- `backend/stt/openai-streaming.ts` — pure adapter: connects to OpenAI (`wss://api.openai.com/v1/realtime?intent=transcription`) with `Authorization: Bearer …` + `OpenAI-Beta: realtime=v1`, sends a `transcription_session.update` on open, exposes `sendAudio`, `commit`, `close` and the callback set (`onReady`, `onPartial`, `onFinal`, `onError`, `onClose`). All Realtime protocol details live here.
+
+Wired in `backend/index.ts`:
+
+```ts
+const server = serve({ fetch: app.fetch, port: 0, hostname: '127.0.0.1' }, info => { … })
+attachStreamServer(server, token)   // <- hooks 'upgrade' on the same http.Server
+```
 
 Existing files updated:
 
-- `backend/router.ts` — mount the WS upgrade route. Auth middleware needs to accept the token via `?token=` for the WS handshake.
-- `backend/routes/transcribe.ts` — unchanged; remains the fallback path.
+- `backend/routes/transcribe.ts` — unchanged; remains the fallback path. POST `/transcribe` with a WAV blob.
+- `backend/router.ts` — unchanged. The Hono router doesn't know about `/stream`.
 
 ## Renderer integration
 
 `App.tsx` decides which path to take in `onStart`:
 
+```ts
+function shouldStream(s: Settings): boolean {
+  return s.backend === 'cloud' && s.streaming && s.cloudModel !== 'whisper-1'
+}
+
+// onStart:
+if (shouldStream(s)) {
+  try { /* construct Streamer, await streamer.start() */ }
+  catch (e) { /* fall through to batch */ }
+}
+// batch: const rec = new Recorder(); await rec.start(deviceId)
 ```
-if (cloud && streamingEnabled && cloudModel !== 'whisper-1') → Streamer
-else                                                          → Recorder (existing batch path)
+
+The active capture is held in a discriminated union ref:
+
+```ts
+type ActiveCapture =
+  | { kind: 'recorder'; recorder: Recorder }
+  | { kind: 'streamer'; streamer: Streamer; finalPromise: Promise<string> | null }
 ```
 
 State while streaming:
 
-- `partialText`: rolling string, updated on every `partial` event. **Display-only** — used optionally to show live preview text in the pill so the user knows transcription is happening. Never written to the clipboard, never pasted.
-- `finalText`: set on `final` event. **This is the only value that gets pasted.**
+- **Rolling partial text**: updated on every `partial` event from the Streamer's `onPartial` callback. **Display-only** — currently a no-op in the renderer (`onPartial: () => {}`), reserved for live preview in the pill ([`PILL.md`](./PILL.md)). Never written to the clipboard, never pasted.
+- **Final text**: returned by `streamer.commit()` (which resolves on the `final` event). **This is the only value that gets pasted.**
 
 On `hotkey:up`:
 
-1. AudioWorklet stops emitting; WS sends `{ "type": "commit" }`.
-2. Pill enters `finalizing` state (so the user has feedback that something's happening).
-3. Wait for the `final` event. **Only the `final` text is ever pasted.** Partial deltas exist for live UI preview only — never for paste.
+1. `streamer.commit()` is called. Internally: flush handshake with the worklet, stop capture, await `session.ready` if not yet ready, send `{ "type": "commit" }`.
+2. Pill enters `transcribing` state.
+3. `commit()` resolves when `final` arrives. **Only the `final` text is ever pasted.**
 4. On `final` → paste `final.text`, close WS.
-5. If no `final` after **5 s** (hard upper bound, indicates a backend or upstream problem) → surface an error in the pill and fall back to the batch path for this utterance by re-uploading the buffered PCM as WAV to `/transcribe`. Pasting partial text is never an option.
+5. If `commit()` doesn't resolve within `FINAL_TIMEOUT_MS` (5 s, hard upper bound) → `finalizeStream` catches the timeout, calls `streamer.getBufferedPcm()`, wraps it with `pcm16ToWavBlob`, and POSTs to `/transcribe`. The batch path returns the text, and we paste that. Pasting partial text is never an option.
 
 The streaming win comes from the fact that finalization is fast: by the time the user releases Fn, the model has already consumed nearly all of the audio. The `final` event typically arrives 100–300 ms after `commit` — much faster than the current batch path (upload-then-transcribe-then-respond). We're trading "almost-instant maybe-truncated" for "fast and definitely correct."
 
+### Mic acquisition fallback
+
+`Streamer.acquireMic()` retries `getUserMedia` without the `deviceId` constraint on `OverconstrainedError` / `NotFoundError`. Same logic that batch `Recorder` could benefit from — covers the case where the user's persisted built-in mic id no longer matches (USB mic unplugged, device list rotated, etc.).
+
 ## Settings
 
-Add to `Settings`:
+`Settings`:
 
 ```ts
 interface Settings {
@@ -142,7 +185,7 @@ interface Settings {
 }
 ```
 
-Surfaced as a toggle in the Cloud section: "Stream transcript while speaking". Disabled / hidden when backend is `local` or `cloudModel === 'whisper-1'`.
+Surfaced in the Cloud section as a `SettingsRow` labeled "Stream transcript" (with a `beta` chip), description: *Send audio as you speak so paste fires fast on release. Falls back to batch on error.* Only rendered when `backend === 'cloud' && cloudModel !== 'whisper-1'`; the row is omitted entirely otherwise rather than shown disabled.
 
 ## Fallback path
 
@@ -165,16 +208,24 @@ In the fallback, the recorder buffers PCM into a WAV like today and POSTs to `/t
 
 ## Risks / open questions
 
-- **OpenAI Realtime cost model.** Streaming bills per audio-second on the input side and per token on the transcription output. We should expose an estimate-per-minute somewhere in Settings before we default streaming on — particularly for users who dictate continuously.
-- **Hotkey release timing vs. tail audio.** If the user releases Fn mid-word, the last ~80 ms chunk may still be in flight. Our `commit` waits for the in-flight chunks to upload before issuing the OpenAI commit; this adds maybe one RTT. Acceptable.
-- **WS auth via query string.** Required because browsers can't set custom WS headers. Token still has 24 bytes of entropy, and the server is loopback-only, so this is fine in practice.
-- **AudioWorklet bundling.** Vite needs to know how to emit the worklet as a separate module loadable by `AudioWorklet.addModule()`. Confirm electron-vite's renderer config supports `?worker` / `?url` imports for this; if not, we ship the worklet as a static asset.
+- **OpenAI Realtime cost model.** Streaming bills per audio-second on the input side and per token on the transcription output. We should expose an estimate-per-minute somewhere in Settings before we default streaming on — particularly for users who dictate continuously. (Default is currently `true`, called out as a follow-up.)
+- **Hotkey release timing vs. tail audio.** Resolved by the flush handshake described in "Audio capture (renderer)" — the worklet acks `flushed` before the streamer sends `commit`, so no tail samples are dropped. Cost: one extra cross-thread round-trip (~few ms).
+- **WS auth via query string.** Required because browsers can't set custom WS headers. Token still has 24 bytes of entropy, and the server is loopback-only, so this is fine in practice. Token check is duplicated in `backend/stream.ts` (not reused from the Hono middleware).
+- **AudioWorklet bundling.** Resolved. `audio-ctx.ts` uses Vite's `?url` import (`import workletUrl from './pcm-worklet.js?url'`) to emit the worklet as a static asset; `audioWorklet.addModule(workletUrl)` loads it at runtime. The worklet is plain JS (no TS) so it doesn't need a separate compile target.
 
-## Implementation order
+## Implementation status
 
-1. AudioWorklet + PCM downsampler in renderer (no backend yet — verify chunks come out at 16 kHz).
-2. Backend `/stream` WS endpoint that **echoes** chunks back (sanity check on transport).
-3. OpenAI Realtime adapter; wire end-to-end with no UI changes (paste still happens on hotkey-up with whatever `partial` we have).
-4. 500 ms commit-wait + final-event polish.
-5. Settings toggle + fallback wiring.
-6. (Stretch) Live partial-text preview in the pill.
+Shipped:
+
+1. ✅ AudioWorklet + PCM downsampler in renderer (`pcm-worklet.js`, 16 kHz mono Int16).
+2. ✅ Shared lazy `AudioContext` + `prewarmAudio()` at app boot (`audio-ctx.ts`).
+3. ✅ Backend `/stream` WS endpoint with token auth + OpenAI Realtime adapter (`backend/stream.ts` + `backend/stt/openai-streaming.ts`).
+4. ✅ End-to-end transport: `Streamer` in renderer ↔ `/stream` ↔ OpenAI; `partial`/`final` flowing.
+5. ✅ 5 s commit timeout + batch fallback via `pcm16ToWavBlob` re-upload to `/transcribe`.
+6. ✅ Settings toggle ("Stream transcript" in cloud section).
+
+Deferred:
+
+7. Live partial-text preview in the pill — wired at the data layer (`onPartial` callback fires) but the renderer's handler is currently a no-op. Owned by [`PILL.md`](./PILL.md).
+8. Per-minute cost estimate in Settings (tied to the cost-model risk above).
+9. `Recorder` (batch path) doesn't yet have the same mic-acquisition fallback (`OverconstrainedError` retry); only `Streamer` does. Easy port.

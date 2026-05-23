@@ -20,10 +20,15 @@ export default defineConfig({
   preload: {
     plugins: [externalizeDepsPlugin()],
     build: {
-      lib: {
-        entry: resolve(__dirname, 'frontend/main/preload.ts'),
-        formats: ['cjs'],
-        fileName: () => 'index.js'
+      rollupOptions: {
+        input: {
+          preload: resolve(__dirname, 'frontend/main/preload.ts'),
+          'preload-pill': resolve(__dirname, 'frontend/main/preload-pill.ts')
+        },
+        output: {
+          format: 'cjs',
+          entryFileNames: '[name].cjs'
+        }
       }
     }
   },
@@ -38,7 +43,10 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        input: resolve(__dirname, 'frontend/renderer/index.html')
+        input: {
+          main: resolve(__dirname, 'frontend/renderer/index.html'),
+          pill: resolve(__dirname, 'frontend/renderer/pill/index.html')
+        }
       }
     }
   }

@@ -5,11 +5,14 @@ import { startBackend } from '../../backend/index'
 import { onProgress } from '../../backend/lib/model-manager'
 import { registerHotkey, unregisterAll } from './hotkey'
 import { pasteIntoFocusedApp } from './paste'
+import { createPillWindow, destroyPillWindow } from './pill-window'
 import type { ServerBootstrap } from '../../shared/types'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 let bootstrap: ServerBootstrap | null = null
+let mainWindow: BrowserWindow | null = null
+let appIsQuitting = false
 
 async function createWindow(): Promise<void> {
   const win = new BrowserWindow({
@@ -30,7 +33,19 @@ async function createWindow(): Promise<void> {
     }
   })
 
+  mainWindow = win
   win.once('ready-to-show', () => win.show())
+
+  win.on('close', event => {
+    if (process.platform === 'darwin' && !appIsQuitting) {
+      event.preventDefault()
+      win.hide()
+    }
+  })
+
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null
+  })
 
   if (process.env.ELECTRON_RENDERER_URL) {
     await win.loadURL(process.env.ELECTRON_RENDERER_URL)
@@ -54,16 +69,29 @@ app.whenReady().then(async () => {
   })
 
   await createWindow()
+  createPillWindow(path.join(__dirname, '../renderer'))
+
+  if (process.platform === 'darwin' && app.dock) {
+    void app.dock.show()
+  }
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (!mainWindow.isVisible()) mainWindow.show()
+      mainWindow.focus()
+    } else {
+      void createWindow()
     }
   })
 })
 
+app.on('before-quit', () => {
+  appIsQuitting = true
+})
+
 app.on('will-quit', () => {
   unregisterAll()
+  destroyPillWindow()
 })
 
 app.on('window-all-closed', () => {

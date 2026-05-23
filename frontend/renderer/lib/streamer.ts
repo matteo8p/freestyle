@@ -41,6 +41,10 @@ export class Streamer {
     return this.bufferedPcm
   }
 
+  getStream(): MediaStream | null {
+    return this.stream
+  }
+
   async start(): Promise<void> {
     const wsPromise = this.openWebSocket()
     const micPromise = this.acquireMic()
