@@ -4,6 +4,7 @@ import { Recorder } from './lib/recorder'
 import { Streamer } from './lib/streamer'
 import { prewarmAudio } from './lib/audio-ctx'
 import { pcm16ToWavBlob } from './lib/wav'
+import { AudioLevelMeter } from './lib/audio-level-meter'
 import { Settings } from './components/Settings'
 import { Sidebar, type Page } from './components/Sidebar'
 import { HomePage, type PillState } from './components/HomePage'
@@ -27,6 +28,7 @@ export function App(): JSX.Element {
   const captureRef = useRef<ActiveCapture | null>(null)
   const recordingRef = useRef(false)
   const settingsRef = useRef<SettingsType | null>(null)
+  const meterRef = useRef<AudioLevelMeter | null>(null)
 
   useEffect(() => {
     settingsRef.current = settings
@@ -71,6 +73,33 @@ export function App(): JSX.Element {
     )
   }
 
+  function setUiState(
+    s: PillState,
+    extras?: { message?: string; durationMs?: number }
+  ): void {
+    setPill(s)
+    setPillMessage(extras?.message)
+    window.freestyle.publishPillState(s, extras)
+  }
+
+  async function startMeter(stream: MediaStream | null): Promise<void> {
+    if (!stream) return
+    const meter = new AudioLevelMeter(stream, frame => {
+      window.freestyle.publishAudioFrame(frame)
+    })
+    try {
+      await meter.start()
+      meterRef.current = meter
+    } catch (e) {
+      console.warn('[freestyle] meter start failed', e)
+    }
+  }
+
+  function stopMeter(): void {
+    meterRef.current?.stop()
+    meterRef.current = null
+  }
+
   async function onStart(): Promise<void> {
     if (recordingRef.current) return
     const s = settingsRef.current
@@ -83,15 +112,15 @@ export function App(): JSX.Element {
           baseUrl: bs.baseUrl,
           token: bs.token,
           deviceId,
-          onPartial: () => {},
+          onPartial: text => window.freestyle.publishTranscriptPartial(text),
           onFinal: () => {},
           onError: () => {}
         })
         await streamer.start()
         captureRef.current = { kind: 'streamer', streamer, finalPromise: null }
         recordingRef.current = true
-        setPill('recording')
-        setPillMessage(undefined)
+        setUiState('recording')
+        await startMeter(streamer.getStream())
         return
       } catch (e) {
         console.warn('[freestyle] streaming start failed, using batch mode', e)
@@ -103,11 +132,12 @@ export function App(): JSX.Element {
       await rec.start(deviceId)
       captureRef.current = { kind: 'recorder', recorder: rec }
       recordingRef.current = true
-      setPill('recording')
-      setPillMessage(undefined)
+      setUiState('recording')
+      await startMeter(rec.getStream())
     } catch (e) {
-      setPill('error')
-      setPillMessage(e instanceof Error ? e.message : String(e))
+      setUiState('error', {
+        message: e instanceof Error ? e.message : String(e)
+      })
     }
   }
 
@@ -119,7 +149,8 @@ export function App(): JSX.Element {
     if (!capture) return
 
     try {
-      setPill('transcribing')
+      setUiState('transcribing')
+      const tStart = performance.now()
       let text: string
 
       if (capture.kind === 'streamer') {
@@ -130,20 +161,28 @@ export function App(): JSX.Element {
         text = res.text
       }
 
-      setLastTranscript(text)
+      stopMeter()
+
+      const durationMs = performance.now() - tStart
+
       if (text.trim().length === 0) {
-        setPill('error')
-        setPillMessage('No speech detected')
-        setTimeout(() => setPill('idle'), 1500)
+        setUiState('error', { message: 'No speech detected' })
+        setTimeout(() => setUiState('idle'), 1500)
         return
       }
-      setPill('pasting')
+
+      setLastTranscript(text)
+      window.freestyle.publishTranscriptFinal(text, durationMs)
+      setUiState('pasting')
       await window.freestyle.paste(text)
-      setPill('idle')
+      setUiState('pasted', { durationMs })
+      setTimeout(() => setUiState('idle'), 1500)
     } catch (e) {
-      setPill('error')
-      setPillMessage(e instanceof Error ? e.message : String(e))
-      setTimeout(() => setPill('idle'), 2500)
+      stopMeter()
+      setUiState('error', {
+        message: e instanceof Error ? e.message : String(e)
+      })
+      setTimeout(() => setUiState('idle'), 2500)
     }
   }
 

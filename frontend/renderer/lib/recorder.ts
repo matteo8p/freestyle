@@ -38,6 +38,10 @@ export class Recorder {
     this.mediaRecorder.start()
   }
 
+  getStream(): MediaStream | null {
+    return this.stream
+  }
+
   async stop(): Promise<Blob> {
     const mr = this.mediaRecorder
     if (!mr) throw new Error('Recorder not started')

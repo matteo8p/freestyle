@@ -6,6 +6,7 @@ export type PillState =
   | 'recording'
   | 'transcribing'
   | 'pasting'
+  | 'pasted'
   | 'error'
 
 interface Props {
@@ -108,9 +109,11 @@ function ListeningCard({
         ? 'Transcribing…'
         : pillState === 'pasting'
           ? 'Pasting at your cursor.'
-          : pillState === 'error'
-            ? pillMessage ?? 'Something went wrong'
-            : 'Ready when you are'
+          : pillState === 'pasted'
+            ? 'Pasted.'
+            : pillState === 'error'
+              ? pillMessage ?? 'Something went wrong'
+              : 'Ready when you are'
 
   const sub = (
     <>
