@@ -5,7 +5,7 @@ export default {
     extend: {
       fontFamily: {
         sans: [
-          '"Inter Tight"',
+          '"DM Sans"',
           'system-ui',
           '-apple-system',
           'BlinkMacSystemFont',
@@ -15,10 +15,10 @@ export default {
           'Arial',
           'sans-serif'
         ],
-        display: [
-          '"Bricolage Grotesque"',
-          'system-ui',
-          'sans-serif'
+        serif: [
+          '"Instrument Serif"',
+          '"Times New Roman"',
+          'serif'
         ],
         mono: [
           '"JetBrains Mono"',
@@ -31,17 +31,20 @@ export default {
         ]
       },
       colors: {
-        paper: '#F1EBDD',
-        'paper-deep': '#E7DFCC',
-        ink: '#1B1814',
-        'ink-soft': '#2B2620',
-        mute: '#8E8473',
-        rule: '#D8CFB9',
-        coral: '#F5511D',
-        'coral-soft': '#FBB89E',
-        sage: '#6E8A6A',
-        'sage-soft': '#BFCFB9',
-        butter: '#F3CB58'
+        canvas: '#F4F0E4',
+        paper: '#ECE7D6',
+        elevated: '#FBF8EE',
+        rule: '#D6CDB8',
+        'rule-soft': '#E3DCC8',
+        ink: '#16140F',
+        'ink-soft': '#34302A',
+        mute: '#7B7461',
+        olive: '#6B8F12',
+        'olive-deep': '#4A6309',
+        'olive-ink': '#2E3F05',
+        'olive-soft': '#E8EFC9',
+        blush: '#DD6E4E',
+        plum: '#5E4E78'
       }
     }
   },

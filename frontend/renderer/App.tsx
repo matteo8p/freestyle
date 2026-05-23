@@ -205,7 +205,7 @@ export function App(): JSX.Element {
   if (bootError) {
     return (
       <div className="flex h-full items-center justify-center px-6">
-        <div className="max-w-md space-y-2 rounded-lg border-l-2 border-coral bg-white p-4">
+        <div className="max-w-md space-y-2 rounded-lg border-l-2 border-blush bg-elevated p-4">
           <div className="text-[15px] font-semibold text-ink">Boot failed</div>
           <pre className="whitespace-pre-wrap font-mono text-[12px] text-mute">
             {bootError}
@@ -224,20 +224,21 @@ export function App(): JSX.Element {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full bg-canvas">
       <Sidebar
         page={page}
         onNavigate={setPage}
         pillState={pill}
         pillMessage={pillMessage}
       />
-      <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-paper">
+      <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
         <div
           className="absolute inset-x-0 top-0 h-10 z-10"
           style={{ WebkitAppRegion: 'drag' }}
         />
         {page === 'home' ? (
           <HomePage
+            settings={settings}
             pillState={pill}
             pillMessage={pillMessage}
             lastTranscript={lastTranscript}
@@ -279,20 +280,21 @@ function ComingSoon({ page }: { page: Page }): JSX.Element {
       className="flex h-full flex-col items-center justify-center text-center"
       style={{ padding: '48px 64px' }}
     >
-      <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute" style={{ marginBottom: 12 }}>
+      <div
+        className="mono uppercase text-mute"
+        style={{
+          fontSize: 11,
+          letterSpacing: '0.18em',
+          marginBottom: 12
+        }}
+      >
         {label}
       </div>
       <h1
-        className="font-display m-0 text-ink"
-        style={{
-          fontSize: 56,
-          fontWeight: 700,
-          lineHeight: 0.95,
-          letterSpacing: '-0.035em',
-          fontVariationSettings: `'wdth' 85, 'opsz' 60`
-        }}
+        className="serif m-0 text-ink"
+        style={{ fontSize: 72, letterSpacing: '-0.025em', lineHeight: 0.95 }}
       >
-        Coming soon.
+        Coming <span className="serif-italic" style={{ color: '#6B8F12' }}>soon.</span>
       </h1>
     </div>
   )

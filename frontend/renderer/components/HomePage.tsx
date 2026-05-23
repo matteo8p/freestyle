@@ -1,5 +1,6 @@
 import { useMemo, type JSX, type ReactNode } from 'react'
-import { Squiggle, Underwave, QuoteCurls, MicGlyph, COLORS } from './art'
+import { COLORS, MarkFlourish, ScopeTrace } from './art'
+import type { Settings as SettingsType } from '@shared/types'
 
 export type PillState =
   | 'idle'
@@ -10,17 +11,19 @@ export type PillState =
   | 'error'
 
 interface Props {
+  settings: SettingsType
   pillState: PillState
   pillMessage?: string
   lastTranscript: string
 }
 
 export function HomePage({
+  settings,
   pillState,
   pillMessage,
   lastTranscript
 }: Props): JSX.Element {
-  const dateLabel = useMemo(
+  const dateShort = useMemo(
     () =>
       new Date().toLocaleDateString('en-US', {
         weekday: 'long',
@@ -29,235 +32,533 @@ export function HomePage({
       }),
     []
   )
+  const issueNumber = useMemo(() => {
+    const start = new Date(2026, 0, 1).getTime()
+    const days = Math.max(0, Math.floor((Date.now() - start) / 86400000))
+    return (1000 + days).toLocaleString()
+  }, [])
+
+  const wordCount =
+    lastTranscript.trim().length === 0
+      ? 0
+      : lastTranscript.trim().split(/\s+/).length
 
   return (
-    <div
-      className="relative flex h-full flex-col overflow-hidden"
-      style={{ padding: '56px 64px', gap: 36 }}
-    >
+    <div className="flex h-full flex-col" style={{ background: COLORS.CANVAS }}>
+      {/* Masthead rule row */}
       <div
-        style={{ position: 'absolute', top: 28, right: -20, opacity: 0.55 }}
+        style={{
+          padding: '20px 36px 0',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 24,
+          flexShrink: 0
+        }}
       >
-        <Squiggle width={260} height={42} stroke={COLORS.INK} weight={2.5} />
-      </div>
-
-      <div className="flex flex-col" style={{ gap: 8 }}>
-        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">
-          {dateLabel}
-        </div>
-        <h1
-          className="font-display m-0 text-ink"
+        <div
+          className="mono"
           style={{
-            fontSize: 84,
-            fontWeight: 700,
-            lineHeight: 0.9,
-            letterSpacing: '-0.035em',
-            fontVariationSettings: `'wdth' 85, 'opsz' 96`
+            fontSize: 11,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: COLORS.MUTE
           }}
         >
-          Hold{' '}
-          <span
-            style={{
-              position: 'relative',
-              fontStyle: 'italic',
-              fontWeight: 500,
-              color: COLORS.INK,
-              fontVariationSettings: `'wdth' 100`
-            }}
-          >
-            fn
-            <span
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                bottom: -10
-              }}
-            >
-              <Underwave width={130} height={14} color={COLORS.CORAL} weight={3.5} />
-            </span>
-          </span>
-          , speak,
-          <br />
-          release.
-        </h1>
+          {dateShort}
+        </div>
+        <div
+          style={{
+            flex: 1,
+            height: 1,
+            background: COLORS.RULE,
+            marginBottom: 5
+          }}
+        />
+        <div
+          className="mono"
+          style={{
+            fontSize: 11,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: COLORS.MUTE
+          }}
+        >
+          Issue №{issueNumber}
+        </div>
       </div>
 
-      <ListeningCard pillState={pillState} pillMessage={pillMessage} />
+      <main
+        style={{
+          flex: 1,
+          padding: '18px 36px 28px',
+          display: 'grid',
+          gridTemplateColumns: '1fr 220px',
+          gap: 28,
+          minHeight: 0,
+          overflow: 'hidden'
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 18,
+            minWidth: 0
+          }}
+        >
+          <HeroStage pillState={pillState} />
+          <FeedHeader takes={lastTranscript ? 1 : 0} />
+          <Feed lastTranscript={lastTranscript} wordCount={wordCount} />
+        </div>
 
-      <TranscriptSection text={lastTranscript} />
-
-      <FooterStats />
+        <StatsRail
+          pillState={pillState}
+          pillMessage={pillMessage}
+          settings={settings}
+          wordCount={wordCount}
+        />
+      </main>
     </div>
   )
 }
 
-function ListeningCard({
+function HeroStage({ pillState }: { pillState: PillState }): JSX.Element {
+  const isRecording = pillState === 'recording'
+  return (
+    <div
+      style={{
+        background: COLORS.ELEVATED,
+        border: `1px solid ${COLORS.RULE}`,
+        borderRadius: 16,
+        padding: '28px 32px 24px',
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
+      <h1 style={{ margin: 0 }}>
+        <span
+          className="serif"
+          style={{
+            fontSize: 62,
+            fontWeight: 400,
+            color: COLORS.INK,
+            letterSpacing: '-0.025em',
+            lineHeight: 0.95
+          }}
+        >
+          Hold{' '}
+        </span>
+        <span
+          className="serif-italic"
+          style={{
+            fontSize: 62,
+            color: COLORS.OLIVE,
+            lineHeight: 0.95
+          }}
+        >
+          fn
+        </span>
+        <span
+          className="serif"
+          style={{
+            fontSize: 62,
+            color: COLORS.INK,
+            lineHeight: 0.95,
+            letterSpacing: '-0.025em'
+          }}
+        >
+          , speak,
+        </span>
+        <br />
+        <span
+          className="serif-italic"
+          style={{
+            fontSize: 62,
+            color: COLORS.INK_SOFT,
+            lineHeight: 0.95
+          }}
+        >
+          release.
+        </span>
+      </h1>
+      <div style={{ marginTop: 18, opacity: isRecording ? 0.85 : 0.45 }}>
+        <ScopeTrace
+          width={500}
+          height={42}
+          cycles={4}
+          weight={1.4}
+          color={isRecording ? COLORS.OLIVE : COLORS.INK}
+        />
+      </div>
+      <div style={{ position: 'absolute', top: 22, right: 26 }}>
+        <MarkFlourish size={42} color={COLORS.OLIVE} weight={3.2} />
+      </div>
+    </div>
+  )
+}
+
+function FeedHeader({ takes }: { takes: number }): JSX.Element {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        marginTop: 4
+      }}
+    >
+      <h2
+        className="serif-italic"
+        style={{ fontSize: 26, color: COLORS.INK, margin: 0, lineHeight: 1 }}
+      >
+        Today&rsquo;s voice
+      </h2>
+      <span
+        className="mono"
+        style={{
+          fontSize: 11,
+          color: COLORS.MUTE,
+          letterSpacing: '0.1em'
+        }}
+      >
+        {takes} {takes === 1 ? 'take' : 'takes'}
+      </span>
+    </div>
+  )
+}
+
+function Feed({
+  lastTranscript,
+  wordCount
+}: {
+  lastTranscript: string
+  wordCount: number
+}): JSX.Element {
+  if (lastTranscript.trim().length === 0) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          overflow: 'hidden',
+          minHeight: 0
+        }}
+      >
+        <FeedEmpty />
+      </div>
+    )
+  }
+  const now = new Date().toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit'
+  })
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        overflow: 'auto',
+        minHeight: 0
+      }}
+    >
+      <FeedItem
+        time={now}
+        app="latest"
+        words={wordCount}
+        quote={lastTranscript}
+        featured
+      />
+    </div>
+  )
+}
+
+function FeedEmpty(): JSX.Element {
+  return (
+    <div
+      style={{
+        background: 'transparent',
+        border: `1px dashed ${COLORS.RULE}`,
+        borderRadius: 12,
+        padding: '24px 22px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8
+      }}
+    >
+      <span
+        className="mono"
+        style={{
+          fontSize: 11,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: COLORS.MUTE
+        }}
+      >
+        No takes yet
+      </span>
+      <p
+        className="serif-italic"
+        style={{
+          margin: 0,
+          fontSize: 20,
+          color: COLORS.INK_SOFT,
+          lineHeight: 1.35
+        }}
+      >
+        Your first transcript will appear here. Hold the globe key and say
+        something.
+      </p>
+    </div>
+  )
+}
+
+function FeedItem({
+  time,
+  app,
+  words,
+  quote,
+  featured
+}: {
+  time: string
+  app: string
+  words: number
+  quote: string
+  featured?: boolean
+}): JSX.Element {
+  return (
+    <div
+      style={{
+        background: featured ? COLORS.ELEVATED : 'transparent',
+        border: featured ? `1px solid ${COLORS.RULE}` : '1px solid transparent',
+        borderRadius: featured ? 12 : 0,
+        padding: featured ? '16px 20px' : '4px 0 12px',
+        borderBottom: !featured ? `1px solid ${COLORS.RULE_SOFT}` : undefined,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span
+          className="mono"
+          style={{
+            fontSize: 11,
+            color: COLORS.INK,
+            letterSpacing: '0.06em',
+            fontWeight: 500
+          }}
+        >
+          {time}
+        </span>
+        <span
+          style={{
+            width: 3,
+            height: 3,
+            borderRadius: '50%',
+            background: COLORS.MUTE
+          }}
+        />
+        <span
+          className="mono"
+          style={{
+            fontSize: 11,
+            color: COLORS.OLIVE,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            fontWeight: 600
+          }}
+        >
+          {app}
+        </span>
+        <div style={{ flex: 1 }} />
+        <span
+          className="mono"
+          style={{
+            fontSize: 10.5,
+            color: COLORS.MUTE,
+            letterSpacing: '0.06em'
+          }}
+        >
+          {words} {words === 1 ? 'wd' : 'wds'}
+        </span>
+      </div>
+      <p
+        className="serif-italic"
+        style={{
+          margin: 0,
+          fontSize: featured ? 22 : 18,
+          color: COLORS.INK_SOFT,
+          lineHeight: 1.35,
+          textWrap: 'pretty'
+        }}
+      >
+        &ldquo;{quote}&rdquo;
+      </p>
+    </div>
+  )
+}
+
+function StatsRail({
   pillState,
-  pillMessage
+  pillMessage,
+  settings,
+  wordCount
 }: {
   pillState: PillState
   pillMessage?: string
+  settings: SettingsType
+  wordCount: number
 }): JSX.Element {
-  const isRecording = pillState === 'recording'
-  const isError = pillState === 'error'
-
-  const headline =
+  const liveLabel =
     pillState === 'recording'
       ? 'Listening…'
       : pillState === 'transcribing'
         ? 'Transcribing…'
         : pillState === 'pasting'
-          ? 'Pasting at your cursor.'
+          ? 'Pasting…'
           : pillState === 'pasted'
-            ? 'Pasted.'
+            ? 'Pasted'
             : pillState === 'error'
-              ? pillMessage ?? 'Something went wrong'
-              : 'Ready when you are'
+              ? pillMessage ?? 'Error'
+              : 'Mic ready'
 
-  const sub = (
-    <>
-      Hold <Kbd>fn</Kbd> anywhere — the cursor doesn&rsquo;t have to be here.
-    </>
-  )
+  const liveColor =
+    pillState === 'error' ? COLORS.BLUSH : COLORS.OLIVE
 
   return (
-    <div
-      className="flex items-center rounded-2xl border border-rule bg-white"
-      style={{ padding: 22, gap: 22 }}
+    <aside
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minWidth: 0,
+        borderLeft: `1px solid ${COLORS.RULE}`,
+        paddingLeft: 22
+      }}
     >
-      <div
-        className="flex shrink-0 items-center justify-center rounded-full border border-rule bg-paper-deep"
-        style={{ width: 56, height: 56 }}
-      >
-        <MicGlyph color={COLORS.INK} size={24} />
-      </div>
-      <div className="flex-1">
-        <div className="text-[15px] font-semibold text-ink" style={{ marginBottom: 4 }}>
-          {headline}
-        </div>
-        <div className="text-[13px] text-mute">{sub}</div>
-      </div>
-      <MicBadge isRecording={isRecording} isError={isError} />
-    </div>
-  )
-}
-
-function MicBadge({
-  isRecording,
-  isError
-}: {
-  isRecording: boolean
-  isError: boolean
-}): JSX.Element {
-  if (isError) {
-    return (
-      <div className="flex items-center gap-2.5 text-[12px] font-semibold text-coral">
-        <span className="h-2 w-2 rounded-full bg-coral" />
-        Error
-      </div>
-    )
-  }
-  if (isRecording) {
-    return (
-      <div className="flex items-center gap-2.5 text-[12px] font-semibold text-coral">
-        <span className="relative inline-flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-coral opacity-60" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-coral" />
-        </span>
-        Live
-      </div>
-    )
-  }
-  return (
-    <div className="flex items-center gap-2.5 text-[12px] font-semibold text-sage">
-      <span className="h-2 w-2 rounded-full bg-sage" />
-      Mic OK
-    </div>
-  )
-}
-
-function TranscriptSection({ text }: { text: string }): JSX.Element {
-  const wordCount = text.trim().length === 0 ? 0 : text.trim().split(/\s+/).length
-
-  return (
-    <div className="flex flex-col" style={{ gap: 14 }}>
-      <div className="flex items-center" style={{ gap: 10 }}>
-        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">
-          Last transcript
-        </div>
-        <div className="h-px flex-1 bg-rule" />
-        <div className="font-mono text-[11px] text-mute">
-          {text ? `${wordCount} word${wordCount === 1 ? '' : 's'}` : 'no transcripts yet'}
-        </div>
-      </div>
-      <div className="flex items-start" style={{ gap: 18 }}>
-        <QuoteCurls
-          size={56}
-          stroke={COLORS.INK}
-          color2={COLORS.CORAL}
-          weight={3.5}
-          style={{ marginTop: 6, flexShrink: 0 }}
-        />
-        <p
-          className="font-display m-0 italic"
+      <RailBlock label="Live">
+        <div
           style={{
-            fontSize: 26,
-            fontWeight: 450,
-            lineHeight: 1.35,
-            color: '#2B2620',
-            fontVariationSettings: `'wdth' 95, 'opsz' 36`,
-            maxWidth: 760,
-            textWrap: 'pretty'
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 6
           }}
         >
-          {text ? text : 'Your latest transcript will land here. Hold the hotkey and say something.'}
-        </p>
-      </div>
-    </div>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: liveColor
+            }}
+          />
+          <span style={{ fontSize: 13, color: COLORS.INK, fontWeight: 500 }}>
+            {liveLabel}
+          </span>
+        </div>
+        <div style={{ fontSize: 12, color: COLORS.MUTE, lineHeight: 1.5 }}>
+          {settings.inputDeviceId == null
+            ? 'System default mic'
+            : 'Pinned microphone'}
+        </div>
+      </RailBlock>
+
+      <RailBlock label="Today">
+        <MetricRow n={wordCount.toLocaleString()} l="words" />
+        <MetricRow
+          n={settings.backend === 'local' ? '100%' : 'Cloud'}
+          l={settings.backend === 'local' ? 'local — no cloud' : 'OpenAI · BYOK'}
+          accent={settings.backend === 'local'}
+        />
+      </RailBlock>
+
+      <RailBlock label="Active" last>
+        <InlineRow
+          label={settings.backend === 'local' ? 'On-device' : 'Cloud'}
+          on={true}
+        />
+        {settings.backend === 'cloud' && settings.cloudModel !== 'whisper-1' && (
+          <InlineRow label="Stream live" on={settings.streaming} />
+        )}
+      </RailBlock>
+    </aside>
   )
 }
 
-function FooterStats(): JSX.Element {
+function RailBlock({
+  label,
+  children,
+  last
+}: {
+  label: string
+  children: ReactNode
+  last?: boolean
+}): JSX.Element {
   return (
     <div
-      className="mt-auto grid grid-cols-3 border-t border-rule"
-      style={{ gap: 20, paddingTop: 20 }}
+      style={{
+        padding: '18px 0',
+        borderBottom: last ? 'none' : `1px solid ${COLORS.RULE}`
+      }}
     >
-      <Stat n="Fn" l="hold to talk" />
-      <Stat n="0.5s" l="typical latency" />
-      <Stat n="100%" l="local — no cloud" accent={COLORS.SAGE} />
+      <div
+        className="mono"
+        style={{
+          fontSize: 10,
+          color: COLORS.MUTE,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          marginBottom: 12
+        }}
+      >
+        {label}
+      </div>
+      {children}
     </div>
   )
 }
 
-function Stat({
+function MetricRow({
   n,
   l,
   accent
 }: {
   n: string
   l: string
-  accent?: string
+  accent?: boolean
 }): JSX.Element {
   return (
-    <div>
+    <div
+      style={{
+        marginBottom: 12,
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 12
+      }}
+    >
       <div
-        className="font-display"
+        className="serif-italic"
         style={{
-          fontSize: 38,
-          fontWeight: 600,
-          color: accent || COLORS.INK,
-          fontVariationSettings: `'wdth' 85, 'opsz' 48`,
-          letterSpacing: '-0.02em',
-          lineHeight: 1
+          fontSize: 32,
+          color: accent ? COLORS.OLIVE : COLORS.INK,
+          lineHeight: 1,
+          minWidth: 70
         }}
       >
         {n}
       </div>
       <div
-        className="text-mute"
-        style={{ fontSize: 12, marginTop: 6, letterSpacing: '0.02em' }}
+        className="mono"
+        style={{
+          fontSize: 10,
+          color: COLORS.MUTE,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          lineHeight: 1.3
+        }}
       >
         {l}
       </div>
@@ -265,13 +566,34 @@ function Stat({
   )
 }
 
-function Kbd({ children }: { children: ReactNode }): JSX.Element {
+function InlineRow({
+  label,
+  on
+}: {
+  label: string
+  on: boolean
+}): JSX.Element {
   return (
-    <span
-      className="font-mono inline-flex items-center rounded-md border border-rule bg-paper-deep text-[11px] font-medium text-ink"
-      style={{ padding: '2px 7px' }}
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '8px 0',
+        borderBottom: `1px solid ${COLORS.RULE_SOFT}`
+      }}
     >
-      {children}
-    </span>
+      <span style={{ fontSize: 12.5, color: COLORS.INK }}>{label}</span>
+      <span
+        className="mono"
+        style={{
+          fontSize: 10,
+          letterSpacing: '0.12em',
+          color: on ? COLORS.OLIVE : COLORS.MUTE
+        }}
+      >
+        {on ? 'ON' : 'OFF'}
+      </span>
+    </div>
   )
 }

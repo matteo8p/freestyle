@@ -7,11 +7,16 @@ import type {
 import { smoothBars } from './lib/smoothBars'
 
 const BARS = 14
-const INK = '#1B1814'
-const CORAL = '#F5511D'
-const PAPER = '#F1EBDD'
-const SAGE_SOFT = '#BFCFB9'
-const SAGE = '#6E8A6A'
+
+const CANVAS = '#F4F0E4'
+const PAPER = '#ECE7D6'
+const ELEVATED = '#FBF8EE'
+const RULE = '#D6CDB8'
+const INK = '#16140F'
+const MUTE = '#7B7461'
+const OLIVE = '#6B8F12'
+const OLIVE_DEEP = '#4A6309'
+const BLUSH = '#DD6E4E'
 
 export function Pill(): JSX.Element {
   const [state, setState] = useState<PillState>('idle')
@@ -128,28 +133,38 @@ function PillBody({
   final: string
   message?: string
 }): JSX.Element {
-  const isRecording = state === 'recording'
-  const bg = isRecording ? CORAL : INK
-  const fg = isRecording ? PAPER : PAPER
+  const recording = state === 'recording'
+  const idle = state === 'idle'
+
+  // Idle uses ink. Recording uses olive. Transcribing/Pasted/Error use elevated.
+  const bg = recording ? OLIVE : idle ? INK : ELEVATED
+  const fg = recording ? CANVAS : idle ? CANVAS : INK
+  const border = recording
+    ? OLIVE_DEEP
+    : idle
+      ? undefined
+      : RULE
 
   return (
     <div
       style={{
-        height: 40,
-        padding: '0 14px',
-        borderRadius: 22,
+        height: 48,
+        padding: '0 18px',
+        borderRadius: 28,
         background: bg,
         color: fg,
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
+        border: border ? `1px solid ${border}` : 'none',
         boxShadow:
-          '0 8px 22px -8px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.08)',
-        fontSize: 13,
+          '0 12px 28px -8px rgba(20,12,4,0.35), 0 0 0 1px rgba(20,12,4,0.08)',
+        fontFamily: "'DM Sans', system-ui, sans-serif",
+        fontSize: 14,
         fontWeight: 500,
-        transition: 'background-color 220ms ease',
-        minWidth: 180,
-        maxWidth: 360
+        transition: 'background-color 220ms ease, color 220ms ease',
+        minWidth: 200,
+        maxWidth: 420
       }}
     >
       {state === 'recording' && (
@@ -168,7 +183,7 @@ function PillBody({
 function IdleContent(): JSX.Element {
   return (
     <>
-      <MicGlyph color={PAPER} size={18} />
+      <MicGlyph color={CANVAS} size={17} />
       <span style={{ opacity: 0.85 }}>Hold</span>
       <span
         className="mono"
@@ -177,7 +192,7 @@ function IdleContent(): JSX.Element {
           background: 'rgba(255,255,255,0.12)',
           borderRadius: 5,
           fontSize: 11,
-          letterSpacing: '0.05em'
+          letterSpacing: '0.06em'
         }}
       >
         fn
@@ -204,35 +219,32 @@ function RecordingContent({
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: 18,
-          height: 18
+          width: 16,
+          height: 16
         }}
       >
-        <span
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.35)'
-          }}
-        />
         <span
           style={{
             width: 10,
             height: 10,
             borderRadius: '50%',
-            background: PAPER
+            background: CANVAS
           }}
         />
       </span>
-      <BarsView bars={bars} color={PAPER} />
+      <BarsView bars={bars} color={CANVAS} />
       <span
         className="mono"
-        style={{ fontSize: 11, opacity: 0.9, letterSpacing: '0.05em' }}
+        style={{
+          fontSize: 11,
+          letterSpacing: '0.06em',
+          color: CANVAS,
+          opacity: 0.85
+        }}
       >
         {formatTimer(elapsedMs)}
       </span>
-      {partial && <PartialPreview text={partial} />}
+      {partial && <PartialPreview text={partial} color={CANVAS} />}
     </>
   )
 }
@@ -242,6 +254,21 @@ function TranscribingContent({ partial }: { partial: string }): JSX.Element {
     <>
       <SpinnerDots />
       <span>{partial ? trimText(partial, 48) : 'Transcribing'}</span>
+      <span
+        className="mono"
+        style={{
+          padding: '2px 7px',
+          background: PAPER,
+          borderRadius: 5,
+          fontSize: 10,
+          letterSpacing: '0.08em',
+          color: MUTE,
+          marginLeft: 4,
+          border: `1px solid ${RULE}`
+        }}
+      >
+        WHISPER.BASE
+      </span>
     </>
   )
 }
@@ -252,7 +279,7 @@ function PastedContent({ final }: { final: string }): JSX.Element {
     <>
       <CheckIcon />
       <span>Pasted</span>
-      <span style={{ opacity: 0.55, fontSize: 12 }}>
+      <span style={{ color: MUTE, fontSize: 12 }}>
         · {words} word{words === 1 ? '' : 's'}
       </span>
     </>
@@ -267,7 +294,7 @@ function ErrorContent({ message }: { message?: string }): JSX.Element {
           width: 10,
           height: 10,
           borderRadius: '50%',
-          background: CORAL
+          background: BLUSH
         }}
       />
       <span style={{ opacity: 0.9 }}>{message ?? 'Error'}</span>
@@ -275,17 +302,24 @@ function ErrorContent({ message }: { message?: string }): JSX.Element {
   )
 }
 
-function PartialPreview({ text }: { text: string }): JSX.Element {
+function PartialPreview({
+  text,
+  color
+}: {
+  text: string
+  color: string
+}): JSX.Element {
   return (
     <span
       style={{
-        maxWidth: 140,
+        maxWidth: 160,
         overflow: 'hidden',
         whiteSpace: 'nowrap',
         textOverflow: 'ellipsis',
         opacity: 0.75,
         fontSize: 12,
-        marginLeft: 4
+        marginLeft: 4,
+        color
       }}
     >
       {text}
@@ -300,8 +334,8 @@ function BarsView({
   bars: number[]
   color: string
 }): JSX.Element {
-  const width = 108
-  const height = 22
+  const width = 130
+  const height = 26
   const gap = width / bars.length
   const cap = Math.min(gap * 0.55, 5)
   return (
@@ -328,13 +362,7 @@ function BarsView({
 
 function SpinnerDots(): JSX.Element {
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        gap: 5,
-        alignItems: 'center'
-      }}
-    >
+    <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
       {[0, 1, 2].map(i => (
         <span
           key={i}
@@ -342,12 +370,12 @@ function SpinnerDots(): JSX.Element {
             width: 6,
             height: 6,
             borderRadius: '50%',
-            background: CORAL,
-            animation: `pillDot 1.1s ${i * 0.15}s infinite ease-in-out`
+            background: OLIVE,
+            animation: `v4dot 1.1s ${i * 0.15}s infinite ease-in-out`
           }}
         />
       ))}
-      <style>{`@keyframes pillDot{0%,100%{opacity:0.35;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}`}</style>
+      <style>{`@keyframes v4dot{0%,100%{opacity:0.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}`}</style>
     </span>
   )
 }
@@ -355,10 +383,10 @@ function SpinnerDots(): JSX.Element {
 function CheckIcon(): JSX.Element {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="7" stroke={SAGE_SOFT} strokeWidth="1.4" />
+      <circle cx="8" cy="8" r="7" stroke={OLIVE} strokeWidth="1.4" opacity="0.5" />
       <path
         d="M5 8l2 2 4-4"
-        stroke={SAGE}
+        stroke={OLIVE}
         strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -383,18 +411,18 @@ function MicGlyph({
         height="11"
         rx="3"
         stroke={color}
-        strokeWidth="1.6"
+        strokeWidth="1.5"
       />
       <path
         d="M5 11a7 7 0 0 0 14 0"
         stroke={color}
-        strokeWidth="1.6"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
       <path
         d="M12 18v3"
         stroke={color}
-        strokeWidth="1.6"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
     </svg>
