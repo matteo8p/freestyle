@@ -9,12 +9,14 @@ export interface Settings {
   hotkey: string
   backend: STTBackend
   cloudModel: CloudModel
+  inputDeviceId: string | null
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   hotkey: 'CommandOrControl+Shift+Space',
   backend: 'local',
-  cloudModel: 'gpt-4o-mini-transcribe'
+  cloudModel: 'gpt-4o-mini-transcribe',
+  inputDeviceId: null
 }
 
 export interface TranscribeResponse {

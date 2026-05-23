@@ -17,6 +17,11 @@ export function App(): JSX.Element {
   const [modelProgress, setModelProgress] = useState<number | null>(null)
   const recorderRef = useRef<Recorder | null>(null)
   const recordingRef = useRef(false)
+  const settingsRef = useRef<SettingsType | null>(null)
+
+  useEffect(() => {
+    settingsRef.current = settings
+  }, [settings])
 
   useEffect(() => {
     void (async (): Promise<void> => {
@@ -51,7 +56,7 @@ export function App(): JSX.Element {
     if (recordingRef.current) return
     try {
       const rec = new Recorder()
-      await rec.start()
+      await rec.start(settingsRef.current?.inputDeviceId ?? null)
       recorderRef.current = rec
       recordingRef.current = true
       setPill('recording')

@@ -9,9 +9,6 @@ import health from './routes/health'
 export function buildRouter(token: string): Hono {
   const app = new Hono()
 
-  // CORS must run before auth so the browser's preflight (OPTIONS, no token)
-  // receives Access-Control-Allow-* headers. The server is loopback-only and
-  // token-gated, so allowing any Origin is safe.
   app.use(
     '*',
     cors({

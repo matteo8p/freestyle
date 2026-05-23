@@ -21,6 +21,10 @@ export function Settings({
 }: Props): JSX.Element {
   const [keyStatus, setKeyStatus] = useState<ApiKeyStatus | null>(null)
   const [models, setModels] = useState<ModelsStatus | null>(null)
+  const [downloadStarting, setDownloadStarting] = useState(false)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([])
+  const [deviceError, setDeviceError] = useState<string | null>(null)
 
   async function refresh(): Promise<void> {
     const [k, m] = await Promise.all([api.getApiKeyStatus(), api.getModels()])
@@ -33,12 +37,64 @@ export function Settings({
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
+    async function loadDevices(autoPick: boolean): Promise<void> {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        stream.getTracks().forEach(t => t.stop())
+        const all = await navigator.mediaDevices.enumerateDevices()
+        if (cancelled) return
+        const inputs = all.filter(d => d.kind === 'audioinput')
+        setInputDevices(inputs)
+        setDeviceError(null)
+
+        if (
+          settings.inputDeviceId &&
+          !inputs.some(d => d.deviceId === settings.inputDeviceId)
+        ) {
+          await update({ inputDeviceId: null })
+          return
+        }
+
+        if (autoPick && settings.inputDeviceId == null) {
+          const builtin = inputs.find(d => /MacBook|Built-in/i.test(d.label))
+          if (builtin) await update({ inputDeviceId: builtin.deviceId })
+        }
+      } catch (e) {
+        if (!cancelled) setDeviceError(e instanceof Error ? e.message : String(e))
+      }
+    }
+
+    void loadDevices(true)
+    const onChange = (): void => void loadDevices(false)
+    navigator.mediaDevices.addEventListener('devicechange', onChange)
+    return () => {
+      cancelled = true
+      navigator.mediaDevices.removeEventListener('devicechange', onChange)
+    }
+  }, [])
+
+  useEffect(() => {
     if (modelProgress === 100) refresh()
   }, [modelProgress])
 
   async function update(patch: Partial<SettingsType>): Promise<void> {
     const next = await api.updateSettings(patch)
     onSettingsChange(next)
+  }
+
+  async function startDownload(): Promise<void> {
+    setDownloadStarting(true)
+    setDownloadError(null)
+    try {
+      await api.downloadLocalModel()
+      await refresh()
+    } catch (e) {
+      setDownloadError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setDownloadStarting(false)
+    }
   }
 
   return (
@@ -53,6 +109,31 @@ export function Settings({
         <p className="mt-1 text-xs text-zinc-500">
           Hold to record, release to transcribe and paste.
         </p>
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-400">
+          Microphone
+        </h2>
+        <select
+          value={settings.inputDeviceId ?? ''}
+          onChange={e => update({ inputDeviceId: e.target.value || null })}
+          className="w-full rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+        >
+          <option value="">System default</option>
+          {inputDevices.map(d => (
+            <option key={d.deviceId} value={d.deviceId}>
+              {d.label || `Microphone (${d.deviceId.slice(0, 6)}…)`}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-zinc-500">
+          Pin to the built-in mic so Bluetooth headphones stay in high-quality
+          A2DP mode and keep noise cancelling on.
+        </p>
+        {deviceError && (
+          <p className="mt-1 text-xs text-rose-400">{deviceError}</p>
+        )}
       </section>
 
       <section>
@@ -90,15 +171,20 @@ export function Settings({
               <span className="text-amber-400">
                 Downloading {models.local.downloadingPercent}%
               </span>
+            ) : downloadStarting ? (
+              <span className="text-amber-400">Starting download…</span>
             ) : (
               <button
-                onClick={() => api.downloadLocalModel()}
+                onClick={startDownload}
                 className="ml-1 rounded bg-zinc-700 px-2 py-0.5 text-xs hover:bg-zinc-600"
               >
                 Download (~60 MB)
               </button>
             )}
           </div>
+          {downloadError && (
+            <p className="mt-1 text-xs text-rose-400">{downloadError}</p>
+          )}
         </section>
       )}
 

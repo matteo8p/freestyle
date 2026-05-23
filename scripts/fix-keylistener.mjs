@@ -1,8 +1,3 @@
-// Ensures node-global-key-listener's bundled MacKeyServer binary is executable.
-// npm doesn't always preserve the +x bit when unpacking, and the library's
-// own startup chmod (via sudo-prompt) fails on macOS Sequoia because the
-// kernel-enforced com.apple.provenance xattr blocks the sudo path.
-// We do it here as the file owner, where the chmod is allowed.
 import { existsSync, chmodSync, statSync } from 'fs'
 import { resolve } from 'path'
 

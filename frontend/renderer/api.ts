@@ -64,10 +64,14 @@ export const api = {
     return asJson<ModelsStatus>(r)
   },
   async downloadLocalModel(): Promise<void> {
-    await fetch(`${baseUrl}/models/local/download`, {
+    const r = await fetch(`${baseUrl}/models/local/download`, {
       method: 'POST',
       headers: headers()
     })
+    if (!r.ok) {
+      const text = await r.text().catch(() => '')
+      throw new Error(`HTTP ${r.status}: ${text || r.statusText}`)
+    }
   },
   async transcribe(wav: Blob): Promise<TranscribeResponse> {
     const form = new FormData()

@@ -6,7 +6,7 @@
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
-    "postinstall": "node scripts/fix-keylistener.mjs",
+    "postinstall": "node scripts/fix-keylistener.mjs && node scripts/build-whisper.mjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",

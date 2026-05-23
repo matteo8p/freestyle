@@ -12,12 +12,10 @@ export async function pasteIntoFocusedApp(text: string): Promise<void> {
   const prior = clipboard.readText()
   clipboard.writeText(text)
   try {
-    // Tiny delay so the system has time to settle clipboard before we fire ⌘V
     await new Promise(r => setTimeout(r, 50))
     await execAsync(
       `osascript -e 'tell application "System Events" to keystroke "v" using {command down}'`
     )
-    // Hold the new clipboard briefly so the target app reads it, then restore
     await new Promise(r => setTimeout(r, 200))
   } finally {
     clipboard.writeText(prior)

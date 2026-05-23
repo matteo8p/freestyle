@@ -6,9 +6,16 @@ export class Recorder {
   private chunks: Blob[] = []
   private mimeType = ''
 
-  async start(): Promise<void> {
+  async start(deviceId?: string | null): Promise<void> {
     this.chunks = []
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    this.stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        deviceId: deviceId ? { ideal: deviceId } : undefined,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    })
     this.mimeType = pickSupportedMime()
     this.mediaRecorder = new MediaRecorder(
       this.stream,

@@ -1,6 +1,9 @@
 import { promises as fs } from 'fs'
+import { createRequire } from 'module'
 import path from 'path'
 import { app } from 'electron'
+
+const nodeRequire = createRequire(import.meta.url)
 
 const MODEL_NAME = 'base.en'
 const MODEL_FILE = `ggml-${MODEL_NAME}.bin`
@@ -13,6 +16,7 @@ export interface ModelState {
 
 let state: ModelState = { downloaded: false }
 let progressCallback: ((percent: number) => void) | null = null
+let inFlight: Promise<string> | null = null
 
 export function onProgress(cb: (percent: number) => void): void {
   progressCallback = cb
@@ -34,25 +38,56 @@ export function modelPath(): string {
   return path.join(modelsDir(), MODEL_FILE)
 }
 
-export async function ensureModel(): Promise<string> {
+function whisperCppModelsDir(): string | null {
+  try {
+    const pkg = nodeRequire.resolve('nodejs-whisper/package.json')
+    return path.join(path.dirname(pkg), 'cpp', 'whisper.cpp', 'models')
+  } catch {
+    return null
+  }
+}
+
+async function ensureWhisperLink(target: string): Promise<void> {
+  const dir = whisperCppModelsDir()
+  if (!dir) return
+  const link = path.join(dir, MODEL_FILE)
+  try {
+    const stat = await fs.lstat(link)
+    if (stat.isSymbolicLink() || stat.isFile()) return
+  } catch {}
+  try {
+    await fs.mkdir(dir, { recursive: true })
+    await fs.symlink(target, link)
+  } catch (err) {
+    console.warn('[freestyle] failed to symlink model into nodejs-whisper:', err)
+  }
+}
+
+function setState(next: ModelState): void {
+  state = next
+  if (next.downloadingPercent != null) progressCallback?.(next.downloadingPercent)
+}
+
+async function doEnsureModel(): Promise<string> {
   const target = modelPath()
   try {
     await fs.access(target)
-    state = { downloaded: true }
+    await ensureWhisperLink(target)
+    setState({ downloaded: true })
     return target
-  } catch {
-    // download below
-  }
+  } catch {}
 
   await fs.mkdir(modelsDir(), { recursive: true })
-  state = { downloaded: false, downloadingPercent: 0 }
+  setState({ downloaded: false, downloadingPercent: 0 })
 
   const res = await fetch(MODEL_URL)
   if (!res.ok || !res.body) {
+    setState({ downloaded: false })
     throw new Error(`Model download failed: ${res.status}`)
   }
   const total = Number(res.headers.get('content-length') ?? 0)
   let received = 0
+  let lastPct = -1
 
   const tmp = target + '.partial'
   const handle = await fs.open(tmp, 'w')
@@ -65,15 +100,26 @@ export async function ensureModel(): Promise<string> {
       received += value.byteLength
       if (total > 0) {
         const pct = Math.floor((received / total) * 100)
-        state = { downloaded: false, downloadingPercent: pct }
-        progressCallback?.(pct)
+        if (pct !== lastPct) {
+          lastPct = pct
+          setState({ downloaded: false, downloadingPercent: pct })
+        }
       }
     }
   } finally {
     await handle.close()
   }
   await fs.rename(tmp, target)
+  await ensureWhisperLink(target)
   state = { downloaded: true }
   progressCallback?.(100)
   return target
+}
+
+export function ensureModel(): Promise<string> {
+  if (inFlight) return inFlight
+  inFlight = doEnsureModel().finally(() => {
+    inFlight = null
+  })
+  return inFlight
 }

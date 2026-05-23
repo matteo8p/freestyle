@@ -1,13 +1,10 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 import os from 'os'
-import { app } from 'electron'
+import { createRequire } from 'module'
 import { ensureModel, getModelName } from '../lib/model-manager'
 import type { STTAdapter, TranscribeResult } from './adapter'
 
-// nodejs-whisper is CommonJS; we lazy-load with createRequire so the import
-// doesn't bind to electron-vite's ESM-only worker resolution.
-import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
 
 export const localWhisperAdapter: STTAdapter = {
@@ -50,8 +47,6 @@ export const localWhisperAdapter: STTAdapter = {
       return { text, model: modelName, backend: 'local' }
     } finally {
       fs.unlink(tmpFile).catch(() => {})
-      // Touch app so import isn't flagged as unused in some setups
-      void app
     }
   }
 }
