@@ -2,6 +2,7 @@
   "name": "freestyle",
   "version": "0.0.1",
   "description": "Open-source AI voice dictation — local-first, BYOK cloud.",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "main": "out/main/index.js",

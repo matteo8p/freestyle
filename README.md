@@ -113,3 +113,11 @@ specs/        Product spec and MVP technical spec
 - **"chmod: Operation not permitted" on macOS Sequoia** — the postinstall handles this. If you see it anyway, run `node scripts/fix-keylistener.mjs` from the project root.
 - **Cloud mode says "API key not set"** — paste the key in the Settings panel and click Save. The field disappears after save and only the last 4 characters are shown.
 - **Production build records no audio after working in dev** — Chromium device IDs are origin-salted; the saved ID from dev doesn't exist on the prod build's `file://` origin. Settings auto-clears the stale ID on launch; if it persists, delete `inputDeviceId` from `~/Library/Application Support/Electron/settings.json`.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md). The shipping plan is in [ROADMAP.md](./ROADMAP.md).
+
+## License
+
+[Apache 2.0](./LICENSE).
