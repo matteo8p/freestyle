@@ -10,10 +10,34 @@
     "postinstall": "install-electron && node scripts/fix-keylistener.mjs && node scripts/build-whisper.mjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "build:icon": "cp assets/app-icon-230-rounded.png build/icon.png",
     "start": "electron-vite preview",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
-    "typecheck": "npm run typecheck:node && npm run typecheck:web"
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "package": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.freestyle.app",
+    "productName": "Freestyle",
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png"
+    },
+    "win": {
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "icon": "build/icon.png"
+    }
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",

@@ -1,5 +1,4 @@
 import type { JSX } from 'react'
-import type { PillState } from './HomePage'
 import {
   COLORS,
   MarkFlourish,
@@ -15,8 +14,6 @@ export type Page = 'home' | 'history' | 'dictionary' | 'settings'
 interface Props {
   page: Page
   onNavigate: (p: Page) => void
-  pillState: PillState
-  pillMessage?: string
 }
 
 interface Item {
@@ -33,7 +30,7 @@ const ITEMS: Item[] = [
   { id: 'settings', label: 'Settings', icon: <NavGear />, enabled: true }
 ]
 
-export function Sidebar({ page, onNavigate, pillState }: Props): JSX.Element {
+export function Sidebar({ page, onNavigate }: Props): JSX.Element {
   return (
     <aside
       className="flex h-full w-[200px] shrink-0 flex-col border-r border-rule bg-paper"
@@ -63,8 +60,6 @@ export function Sidebar({ page, onNavigate, pillState }: Props): JSX.Element {
           />
         ))}
       </div>
-
-      <FooterStatus pillState={pillState} />
     </aside>
   )
 }
@@ -114,79 +109,3 @@ function NavItem({
   )
 }
 
-function FooterStatus({ pillState }: { pillState: PillState }): JSX.Element {
-  const isLive = pillState === 'recording'
-  const isWorking =
-    pillState === 'transcribing' || pillState === 'pasting'
-  const isError = pillState === 'error'
-
-  const dotColor = isError
-    ? COLORS.BLUSH
-    : isWorking
-      ? COLORS.MUTE
-      : COLORS.OLIVE
-  const statusText = isError
-    ? 'ERROR'
-    : isLive
-      ? 'LIVE'
-      : isWorking
-        ? 'WORKING'
-        : 'READY'
-  const statusColor = isError
-    ? COLORS.BLUSH
-    : isWorking
-      ? COLORS.MUTE
-      : COLORS.OLIVE
-
-  return (
-    <div
-      style={{
-        marginTop: 'auto',
-        padding: '12px 10px 0',
-        borderTop: `1px solid ${COLORS.RULE}`
-      }}
-    >
-      <div
-        className="mono"
-        style={{
-          fontSize: 10,
-          color: COLORS.MUTE,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase'
-        }}
-      >
-        v0.1 · alpha
-      </div>
-      <div style={{ fontSize: 12, color: COLORS.INK_SOFT, marginTop: 4 }}>
-        local · whisper.base.en
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          marginTop: 8
-        }}
-      >
-        <span
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: dotColor
-          }}
-        />
-        <span
-          className="mono"
-          style={{
-            fontSize: 10,
-            color: statusColor,
-            letterSpacing: '0.12em'
-          }}
-        >
-          {statusText}
-        </span>
-      </div>
-    </div>
-  )
-}

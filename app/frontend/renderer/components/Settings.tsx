@@ -130,42 +130,6 @@ export function Settings({
       className="flex h-full flex-col overflow-y-auto"
       style={{ background: COLORS.CANVAS }}
     >
-      {/* Masthead rule row */}
-      <div
-        style={{
-          padding: '20px 36px 0',
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          gap: 24,
-          flexShrink: 0
-        }}
-      >
-        <div
-          className="mono"
-          style={{
-            fontSize: 11,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: COLORS.MUTE
-          }}
-        >
-          Preferences
-        </div>
-        <div style={{ flex: 1, height: 1, background: COLORS.RULE, marginBottom: 5 }} />
-        <div
-          className="mono"
-          style={{
-            fontSize: 11,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: COLORS.MUTE
-          }}
-        >
-          §03
-        </div>
-      </div>
-
       <main
         style={{
           flex: 1,
@@ -176,6 +140,19 @@ export function Settings({
           minHeight: 0
         }}
       >
+        <div
+          className="mono"
+          style={{
+            paddingTop: 48,
+            fontSize: 11,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: COLORS.MUTE,
+            flexShrink: 0
+          }}
+        >
+          Preferences
+        </div>
         <h1 style={{ margin: 0 }}>
           <span
             className="serif"

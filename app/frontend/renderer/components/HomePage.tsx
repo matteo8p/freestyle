@@ -39,59 +39,10 @@ export function HomePage({
       }),
     []
   )
-  const issueNumber = useMemo(() => {
-    const start = new Date(2026, 0, 1).getTime()
-    const days = Math.max(0, Math.floor((Date.now() - start) / 86400000))
-    return (1000 + days).toLocaleString()
-  }, [])
-
   const totalWords = takes.reduce((sum, t) => sum + t.wordCount, 0)
 
   return (
     <div className="flex h-full flex-col" style={{ background: COLORS.CANVAS }}>
-      {/* Masthead rule row */}
-      <div
-        style={{
-          padding: '20px 36px 0',
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          gap: 24,
-          flexShrink: 0
-        }}
-      >
-        <div
-          className="mono"
-          style={{
-            fontSize: 11,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: COLORS.MUTE
-          }}
-        >
-          {dateShort}
-        </div>
-        <div
-          style={{
-            flex: 1,
-            height: 1,
-            background: COLORS.RULE,
-            marginBottom: 5
-          }}
-        />
-        <div
-          className="mono"
-          style={{
-            fontSize: 11,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: COLORS.MUTE
-          }}
-        >
-          Issue №{issueNumber}
-        </div>
-      </div>
-
       <main
         style={{
           flex: 1,
@@ -112,6 +63,19 @@ export function HomePage({
             minHeight: 0
           }}
         >
+          <div
+            className="mono"
+            style={{
+              paddingTop: 50,
+              fontSize: 11,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: COLORS.MUTE,
+              flexShrink: 0
+            }}
+          >
+            {dateShort}
+          </div>
           <HeroStage pillState={pillState} />
           <FeedHeader takes={takes.length} />
           <Feed takes={takes} />
@@ -412,8 +376,7 @@ function StatsRail({
         display: 'flex',
         flexDirection: 'column',
         minWidth: 0,
-        borderLeft: `1px solid ${COLORS.RULE}`,
-        paddingLeft: 22
+        paddingTop: 32
       }}
     >
       <RailBlock label="Live">

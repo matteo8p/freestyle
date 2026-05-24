@@ -235,12 +235,7 @@ export function App(): JSX.Element {
 
   return (
     <div className="flex h-full bg-canvas">
-      <Sidebar
-        page={page}
-        onNavigate={setPage}
-        pillState={pill}
-        pillMessage={pillMessage}
-      />
+      <Sidebar page={page} onNavigate={setPage} />
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
         <div
           className="absolute inset-x-0 top-0 h-10 z-10"

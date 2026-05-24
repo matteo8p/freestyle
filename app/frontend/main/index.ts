@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, nativeImage } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { startBackend } from '../../backend/index'
@@ -23,6 +23,7 @@ async function createWindow(): Promise<void> {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#F1EBDD',
+    icon: path.join(__dirname, '../../build/icon.png'),
     title: 'Freestyle',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
@@ -74,6 +75,16 @@ async function installReactDevTools(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
+  // Set the Dock icon first, before any awaits, so macOS shows our icon instead of
+  // the default Electron atom during the (often multi-second) startup work below.
+  if (process.platform === 'darwin' && app.dock) {
+    if (!app.isPackaged) {
+      const icon = nativeImage.createFromPath(path.join(__dirname, '../../build/icon.png'))
+      if (!icon.isEmpty()) app.dock.setIcon(icon)
+    }
+    void app.dock.show()
+  }
+
   await installReactDevTools()
 
   bootstrap = await startBackend()
@@ -85,10 +96,6 @@ app.whenReady().then(async () => {
 
   await createWindow()
   createPillWindow(path.join(__dirname, '../renderer'))
-
-  if (process.platform === 'darwin' && app.dock) {
-    void app.dock.show()
-  }
 
   app.on('activate', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
