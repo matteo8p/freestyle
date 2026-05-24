@@ -60,6 +60,9 @@ async function createWindow(): Promise<void> {
   })
 }
 
+// TODO: externalize electron-devtools-installer in electron.vite.config.ts so the dynamic
+// import doesn't pull a ~330 KB chunk into the packaged main bundle. Gated by app.isPackaged
+// so it never runs in prod, but the bytes still ship.
 async function installReactDevTools(): Promise<void> {
   if (app.isPackaged) return
   try {

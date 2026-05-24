@@ -49,7 +49,7 @@ export function Sidebar({ page, onNavigate, pillState }: Props): JSX.Element {
           gap: 10
         }}
       >
-        <MarkFlourish size={28} color={COLORS.OLIVE} />
+        <MarkFlourish size={28} />
         <Wordmark size={22} color={COLORS.INK} accent={COLORS.OLIVE} />
       </div>
 

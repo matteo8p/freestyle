@@ -1,4 +1,9 @@
 import type { CSSProperties, JSX } from 'react'
+import markOliveUrl from '@assets/mark-olive.svg'
+import markBlackUrl from '@assets/mark-black.svg'
+import markInkUrl from '@assets/mark-ink.svg'
+import markWhiteUrl from '@assets/mark-white.svg'
+import markCanvasUrl from '@assets/mark-canvas.svg'
 
 export const COLORS = {
   CANVAS: '#F4F0E4',
@@ -52,44 +57,59 @@ export function Wordmark({
   )
 }
 
-// Single sound-wave line — 2.5 oscillations with a sine envelope so the
-// amplitude tapers in from zero, peaks in the middle, and tapers back out.
+const MARK_BY_VARIANT = {
+  olive: markOliveUrl,
+  black: markBlackUrl,
+  ink: markInkUrl,
+  white: markWhiteUrl,
+  canvas: markCanvasUrl
+} as const
+
+export type MarkVariant = keyof typeof MARK_BY_VARIANT
+
+// The freestyle wave-mark. Renders one of the static SVG variants from /app/assets.
+// Map a color to its variant when a caller still passes the legacy `color` prop;
+// otherwise pass `variant` directly.
 export function MarkFlourish({
   size = 64,
-  color = COLORS.OLIVE,
-  weight,
-  cycles = 2.5,
-  peakAmp = 32
-}: {
+  variant,
+  color,
+  style
+}: BaseProps & {
   size?: number
+  variant?: MarkVariant
   color?: string
-  weight?: number
-  cycles?: number
-  peakAmp?: number
 }): JSX.Element {
-  const w = weight ?? size * 0.09
-  const N = 96
-  const pts: string[] = []
-  for (let i = 0; i <= N; i++) {
-    const t = i / N
-    const x = 6 + t * 88
-    const envelope = Math.sin(Math.PI * t)
-    const amp = peakAmp * envelope
-    const y = 50 - amp * Math.sin(2 * Math.PI * cycles * t)
-    pts.push(`${x.toFixed(2)},${y.toFixed(2)}`)
-  }
+  const chosen: MarkVariant = variant ?? variantForColor(color)
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
-      <polyline
-        points={pts.join(' ')}
-        fill="none"
-        stroke={color}
-        strokeWidth={w * (100 / size)}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <img
+      src={MARK_BY_VARIANT[chosen]}
+      width={size}
+      height={size}
+      alt="Freestyle"
+      style={{ display: 'inline-block', ...style }}
+    />
   )
+}
+
+function variantForColor(color?: string): MarkVariant {
+  switch (color) {
+    case COLORS.INK:
+    case COLORS.INK_SOFT:
+      return 'ink'
+    case COLORS.CANVAS:
+    case COLORS.PAPER:
+    case COLORS.ELEVATED:
+      return 'canvas'
+    case '#000':
+    case '#000000':
+      return 'black'
+    case '#fff':
+    case '#ffffff':
+      return 'white'
+    default:
+      return 'olive'
+  }
 }
 
 // Continuous oscilloscope trace. Background motif on hero surfaces.

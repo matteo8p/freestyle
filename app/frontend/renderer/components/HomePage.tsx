@@ -197,7 +197,7 @@ function HeroStage({ pillState }: { pillState: PillState }): JSX.Element {
         />
       </div>
       <div style={{ position: 'absolute', top: 22, right: 26 }}>
-        <MarkFlourish size={42} color={COLORS.OLIVE} weight={3.2} />
+        <MarkFlourish size={42} />
       </div>
     </div>
   )

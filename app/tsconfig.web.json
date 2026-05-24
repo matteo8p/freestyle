@@ -15,7 +15,8 @@
     "baseUrl": ".",
     "paths": {
       "@renderer/*": ["frontend/renderer/*"],
-      "@shared/*": ["shared/*"]
+      "@shared/*": ["shared/*"],
+      "@assets/*": ["assets/*"]
     }
   },
   "include": [
