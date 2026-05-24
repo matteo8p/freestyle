@@ -181,23 +181,30 @@ function PillBody({
 }
 
 function IdleContent(): JSX.Element {
+  const isWin = process.platform === 'win32'
   return (
     <>
       <MicGlyph color={CANVAS} size={17} />
-      <span style={{ opacity: 0.85 }}>Hold</span>
-      <span
-        className="mono"
-        style={{
-          padding: '2px 7px',
-          background: 'rgba(255,255,255,0.12)',
-          borderRadius: 5,
-          fontSize: 11,
-          letterSpacing: '0.06em'
-        }}
-      >
-        fn
-      </span>
-      <span style={{ opacity: 0.6, marginLeft: 2 }}>to talk</span>
+      {isWin ? (
+        <span style={{ opacity: 0.85 }}>F9 to toggle</span>
+      ) : (
+        <>
+          <span style={{ opacity: 0.85 }}>Hold</span>
+          <span
+            className="mono"
+            style={{
+              padding: '2px 7px',
+              background: 'rgba(255,255,255,0.12)',
+              borderRadius: 5,
+              fontSize: 11,
+              letterSpacing: '0.06em'
+            }}
+          >
+            fn
+          </span>
+          <span style={{ opacity: 0.6, marginLeft: 2 }}>to talk</span>
+        </>
+      )}
     </>
   )
 }

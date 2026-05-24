@@ -94,6 +94,8 @@ export function HomePage({
 
 function HeroStage({ pillState }: { pillState: PillState }): JSX.Element {
   const isRecording = pillState === 'recording'
+  const isWin = process.platform === 'win32'
+  const fs = 62
   return (
     <div
       style={{
@@ -109,29 +111,29 @@ function HeroStage({ pillState }: { pillState: PillState }): JSX.Element {
         <span
           className="serif"
           style={{
-            fontSize: 62,
+            fontSize: fs,
             fontWeight: 400,
             color: COLORS.INK,
             letterSpacing: '-0.025em',
             lineHeight: 0.95
           }}
         >
-          Hold{' '}
+          {isWin ? 'Press ' : 'Hold '}
         </span>
         <span
           className="serif-italic"
           style={{
-            fontSize: 62,
+            fontSize: fs,
             color: COLORS.OLIVE,
             lineHeight: 0.95
           }}
         >
-          fn
+          {isWin ? 'F9' : 'fn'}
         </span>
         <span
           className="serif"
           style={{
-            fontSize: 62,
+            fontSize: fs,
             color: COLORS.INK,
             lineHeight: 0.95,
             letterSpacing: '-0.025em'
@@ -143,12 +145,12 @@ function HeroStage({ pillState }: { pillState: PillState }): JSX.Element {
         <span
           className="serif-italic"
           style={{
-            fontSize: 62,
+            fontSize: fs,
             color: COLORS.INK_SOFT,
             lineHeight: 0.95
           }}
         >
-          release.
+          {isWin ? 'press again.' : 'release.'}
         </span>
       </h1>
       <div style={{ marginTop: 18, opacity: isRecording ? 0.85 : 0.45 }}>
@@ -276,8 +278,10 @@ function FeedEmpty(): JSX.Element {
           lineHeight: 1.35
         }}
       >
-        Your first transcript will appear here. Hold the globe key and say
-        something.
+        Your first transcript will appear here.{' '}
+        {process.platform === 'win32'
+          ? 'Press F9 and say something.'
+          : 'Hold the globe key and say something.'}
       </p>
     </div>
   )
