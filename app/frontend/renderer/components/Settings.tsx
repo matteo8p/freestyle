@@ -71,7 +71,10 @@ export function Settings({
         }
 
         if (autoPick && settings.inputDeviceId == null) {
-          const builtin = inputs.find(d => /MacBook|Built-in/i.test(d.label))
+          const pattern = process.platform === 'darwin'
+            ? /MacBook|Built-in/i
+            : /built-in|internal|realtek|integrated/i
+          const builtin = inputs.find(d => pattern.test(d.label))
           if (builtin) await update({ inputDeviceId: builtin.deviceId })
         }
       } catch (e) {
@@ -183,13 +186,17 @@ export function Settings({
           <BentoCard
             span={4}
             label="Hotkey"
-            desc="Hold to record. Release to transcribe."
+            desc={process.platform === 'darwin' ? 'Hold to record. Release to transcribe.' : 'Press to start recording. Press again to stop.'}
           >
-            <div
-              style={{ display: 'flex', gap: 10, alignItems: 'center' }}
-            >
-              <KbdBig>fn</KbdBig>
-              <span style={{ fontSize: 12, color: COLORS.MUTE }}>globe key</span>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              {process.platform === 'darwin' ? (
+                <>
+                  <KbdBig>fn</KbdBig>
+                  <span style={{ fontSize: 12, color: COLORS.MUTE }}>globe key</span>
+                </>
+              ) : (
+                <KbdBig>F9</KbdBig>
+              )}
             </div>
           </BentoCard>
 
@@ -311,7 +318,7 @@ export function Settings({
             <BentoCard
               span={settings.cloudModel === 'whisper-1' ? 6 : 4}
               label="OpenAI API key"
-              desc="Stored encrypted in macOS Keychain. Never logged."
+              desc={`Stored encrypted in ${process.platform === 'darwin' ? 'macOS Keychain' : 'system secure storage'}. Never logged.`}
             >
               {keyStatus && <ApiKeyField status={keyStatus} onChange={refresh} />}
             </BentoCard>

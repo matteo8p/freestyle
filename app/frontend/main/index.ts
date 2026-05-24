@@ -25,8 +25,8 @@ async function createWindow(): Promise<void> {
     backgroundColor: '#F1EBDD',
     icon: path.join(__dirname, '../../build/icon.png'),
     title: 'Freestyle',
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 16 },
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    trafficLightPosition: process.platform === 'darwin' ? { x: 16, y: 16 } : undefined,
     webPreferences: {
       preload: path.join(__dirname, '../preload/preload.cjs'),
       sandbox: false,

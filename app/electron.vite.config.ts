@@ -35,6 +35,9 @@ export default defineConfig({
   renderer: {
     root: resolve(__dirname, 'frontend/renderer'),
     plugins: [react()],
+    define: {
+      'process.platform': JSON.stringify(process.platform)
+    },
     resolve: {
       alias: {
         '@shared': resolve(__dirname, 'shared'),

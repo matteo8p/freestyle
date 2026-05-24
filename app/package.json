@@ -45,9 +45,11 @@
     "electron-updater": "^6.3.9",
     "hono": "^4.6.14",
     "node-global-key-listener": "^0.3.0",
-    "nodejs-whisper": "^0.2.9",
     "openai": "^4.77.0",
     "ws": "^8.21.0"
+  },
+  "optionalDependencies": {
+    "nodejs-whisper": "^0.2.9"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
