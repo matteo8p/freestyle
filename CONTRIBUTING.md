@@ -13,24 +13,28 @@ Thanks for your interest. Freestyle is early — most surfaces are still moving,
 
 Prereqs: macOS, Node 20+, Xcode CLT, CMake (`brew install cmake`). Full prereq list in the [README](./README.md#prerequisites).
 
+All code lives in `app/`. Everything else at the root (`specs/`, `designs/`, `*.md`, `LICENSE`) is documentation.
+
 ```bash
 git clone <this-repo>
-cd freestyle
+cd freestyle/app
 npm install
 npm run dev
 ```
 
 `npm install` runs the postinstall scripts (`scripts/fix-keylistener.mjs`, `scripts/build-whisper.mjs`) which take ~30–60s the first time. If `whisper.cpp` fails to build, see the README's [Troubleshooting](./README.md#troubleshooting) section before opening an issue.
 
-## Project layout
+## Repo layout
 
 ```
-frontend/main/      Electron main process (window, hotkey, paste, pill window)
-frontend/renderer/  React app
-backend/            Hono HTTP API, STT adapters (local + OpenAI), settings, secrets
-shared/             Types shared by main + renderer + backend
-scripts/            Postinstall helpers
-specs/              Product spec and MVP technical spec
+app/                    ← all code lives here; run npm commands from inside
+  frontend/main/        Electron main process (window, hotkey, paste, pill window)
+  frontend/renderer/    React app
+  backend/              Hono HTTP API, STT adapters (local + OpenAI), settings, secrets
+  shared/               Types shared by main + renderer + backend
+  scripts/              Postinstall helpers
+specs/                  Product spec and MVP technical spec
+designs/                Brand and UI design files
 ```
 
 Communication: main ↔ renderer via IPC for push events; renderer ↔ backend via typed `hc` over HTTP on `127.0.0.1`.

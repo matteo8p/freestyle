@@ -14,11 +14,26 @@ The product spec lives in [`specs/README.md`](./specs/README.md). The MVP techni
 
 If you plan to use cloud mode only, CMake is optional — the postinstall step will warn and skip the local build.
 
+## Repo layout
+
+```
+freestyle/
+├── app/         # all source code, configs, package.json — everything you run
+├── specs/       # product + technical specs
+├── designs/     # brand and UI design files
+├── README.md
+├── CONTRIBUTING.md
+├── ROADMAP.md
+└── LICENSE
+```
+
+All commands below assume you're inside `app/`.
+
 ## Install
 
 ```bash
 git clone <this-repo>
-cd freestyle
+cd freestyle/app
 npm install
 ```
 
@@ -95,14 +110,13 @@ node scripts/fix-keylistener.mjs
 node scripts/build-whisper.mjs
 ```
 
-## Project layout
+## Code layout (inside `app/`)
 
 ```
-frontend/     Electron main process + React renderer
-backend/      Hono HTTP API, STT adapters (local + OpenAI), settings, secrets
-shared/       Types shared by both sides
-scripts/      Postinstall helpers
-specs/        Product spec and MVP technical spec
+app/frontend/   Electron main process + React renderer
+app/backend/    Hono HTTP API, STT adapters (local + OpenAI), settings, secrets
+app/shared/     Types shared by both sides
+app/scripts/    Postinstall helpers
 ```
 
 ## Troubleshooting
@@ -110,7 +124,7 @@ specs/        Product spec and MVP technical spec
 - **`nodejs-whisper` install fails or first transcribe returns "Cannot read properties of undefined (reading 'code')"** — CMake is not installed. Run `brew install cmake`, then `npm install` again so the postinstall builds `whisper.cpp`.
 - **Hotkey does nothing** — Accessibility permission may not be granted. Open System Settings → Privacy & Security → Accessibility and enable the Freestyle (or Electron) entry.
 - **Gatekeeper warning about `MacKeyServer`** — the bundled key-listener helper is unsigned. Click Allow in System Settings → Privacy & Security after the first prompt; the warning won't recur.
-- **"chmod: Operation not permitted" on macOS Sequoia** — the postinstall handles this. If you see it anyway, run `node scripts/fix-keylistener.mjs` from the project root.
+- **"chmod: Operation not permitted" on macOS Sequoia** — the postinstall handles this. If you see it anyway, run `node scripts/fix-keylistener.mjs` from inside `app/`.
 - **Cloud mode says "API key not set"** — paste the key in the Settings panel and click Save. The field disappears after save and only the last 4 characters are shown.
 - **Production build records no audio after working in dev** — Chromium device IDs are origin-salted; the saved ID from dev doesn't exist on the prod build's `file://` origin. Settings auto-clears the stale ID on launch; if it persists, delete `inputDeviceId` from `~/Library/Application Support/Electron/settings.json`.
 
